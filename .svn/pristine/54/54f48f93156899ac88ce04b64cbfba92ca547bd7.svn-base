@@ -1,0 +1,497 @@
+<template>
+  <div class="ccbCustomerDetail">
+    <!-- <van-nav-bar
+            left-text="北京新希望有限责任公司"
+            left-arrow
+            @click-left="$router.go(-1)"
+    />-->
+    <div class="top">
+      <p @click="$router.go(-1)">
+        <img src="../../images/goback.png" alt />
+        <span>{{stationDetail.serverName}}</span>
+      </p>
+      <div>
+        <p>
+          <img src="../../images/secondBank-b.png" alt />
+          <span>{{stationDetail.secondBank}}</span>
+        </p>
+        <p>
+          <img src="../../images/name.png" alt />
+          <span>{{stationDetail.customerName}}</span>
+        </p>
+      </div>
+    </div>
+    <!-- top -->
+
+    <van-tabs @click="onClick" title-active-color="#1c92ff" line-width="0" line-height="0">
+      <van-tab title="资料详情">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/name.png" alt /></span>
+            <span class="title">业主姓名</span>
+            <span class="desc">{{stationDetail.customerName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/phone.png" alt /></span>
+            <span class="title">联系方式</span>
+            <span class="desc">{{stationDetail.phones}}</span>
+          </div>
+          <div class="listLi" v-if="stationDetail.label">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/tag.png" alt /></span>
+            <span class="title">客户标签</span>
+            <span class="desc">
+              <span v-for="(item, index) in labelArray" :key="index" class="tips">{{item}}</span>
+            </span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/noServer.png" alt /></span>
+            <span class="title">服务点编号</span>
+            <span class="desc">{{stationDetail.serverNo}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/customerName.png" alt /></span>
+            <span class="title">服务点名称</span>
+            <span class="desc">{{stationDetail.serverName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/noIntnet.png" alt /></span>
+            <span class="title">所属网点编号</span>
+            <span class="desc">{{stationDetail.netNo}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/InternetName.png" alt /></span>
+            <span class="title">所属网点名称</span>
+            <span class="desc">{{stationDetail.netName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/firstBank.png" alt /></span>
+            <span class="title">所属一级行</span>
+            <span class="desc">{{stationDetail.firstBank}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/secondBank.png" alt /></span>
+            <span class="title">所属二级行</span>
+            <span class="desc">{{stationDetail.secondBank}}</span>
+          </div>
+           <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/date.png" alt /></span>
+            <span class="title title7">服务点激活日期</span>
+            <span class="desc">{{activeDate}}</span>
+          </div>
+
+        </div>
+        <!-- <div class="marBottom">
+          <van-field
+            placeholder="业主姓名"
+            label="业主姓名"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/name.png"
+            input-align="right"
+            v-model="stationDetail.customerName"
+          />
+          <van-field
+            placeholder="联系方式"
+            label="联系方式"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/phone.png"
+            input-align="right"
+            v-model="stationDetail.phones"
+          />
+          <van-field
+            placeholder="服务点编号"
+            label="服务点编号"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/noServer.png"
+            input-align="right"
+            v-model="stationDetail.serverNo"
+          />
+          <van-field
+            placeholder="服务点名称"
+            label="服务点名称"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/customerName.png"
+            input-align="right"
+            v-model="stationDetail.serverName"
+          />
+          <van-field
+            placeholder="所属网点编号"
+            label="所属网点编号"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/noIntnet.png"
+            input-align="right"
+            v-model="stationDetail.netNo"
+          />
+          <van-field
+            placeholder="所属网点名称"
+            label="所属网点名称"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/InternetName.png"
+            input-align="right"
+            v-model="stationDetail.netName"
+          />
+          <van-field
+            placeholder="所属一级行"
+            label="所属一级行"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/firstBank.png"
+            input-align="right"
+            v-model="stationDetail.firstBank"
+          />
+          <van-field
+            placeholder="所属二级行"
+            label="所属二级行"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/secondBank.png"
+            input-align="right"
+            v-model="stationDetail.secondBank"
+          />
+          <van-field
+            placeholder="服务点激活日期"
+            label="服务点激活日期"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/date.png"
+            input-align="right"
+            v-model="activeDate"
+          />
+        </div> -->
+
+        <p class="dataTitle">交易数据统计</p>
+        <div class="numDetail" style="margin-bottom: 0">
+          <div class="ulDiv">
+            <div>
+              <span>{{stationDetail.server_year_deal_money}}</span>
+              <span>本年交易笔数</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_year_deal_num}}</span>
+              <span>本年交易金额</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_deal_num}}</span>
+              <span>累计交易笔数</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_deal_money}}</span>
+              <span>累计交易金额</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_sign_num}}</span>
+              <span>服务点签约卡量</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_signyi_num}}</span>
+              <span>签约益农卡量</span>
+            </div>
+          </div>
+        </div>
+      </van-tab>
+      <van-tab title="跟进动态">
+        <div v-for="(item,index) in genjin" :key="index">
+          <p>{{item.follow_time}}</p>
+          <ul>
+            <li>
+              <img src="../../images/avatar1.png" alt />
+              <span>{{userName}}</span>
+              <span>市场专员</span>
+            </li>
+            <li>
+              <img src="../../images/info.png" alt />
+              <span>{{item.content}}</span>
+            </li>
+            <li>
+              <img src="../../images/time.png" alt />
+              <span>{{item.follow_time}}</span>
+            </li>
+            <li v-if="item.address">
+              <img src="../../images/time.png" alt />
+              <span>{{item.address}}</span>
+            </li>
+            <li>
+              <img src="../../images/customerStatus.png" alt />
+              <span v-if="item.type==1">到访</span>
+              <span v-else-if="item.type==2">电话</span>
+              <span v-else-if="item.type==3">微信</span>
+              <span v-else-if="item.type==4">短信</span>
+              <span v-else-if="item.type==5">其他</span>
+            </li>
+          </ul>
+        </div>
+      </van-tab>
+    </van-tabs>
+  </div>
+</template>
+<script>
+export default {
+  name: "ccbCustomerDetail",
+  data() {
+    return {
+      stationDetail: {},
+      genjin: [],
+      userName: "",
+      activeDate: "",
+      labelArray: []
+    };
+  },
+  mounted() {
+    var customer_id = this.$route.query.id;
+    this.userName = localStorage.getItem("userName");
+    this.$api.ccbCustomerDetail({ customer_id: customer_id }).then(res => {
+      // console.log(res)
+      if (res.errno === 0) {
+        if (res.data) {
+          this.stationDetail = res.data;
+          let activeDateArray = res.data.activeDate.split("/");
+          this.activeDate =
+            activeDateArray[2] +
+            "-" +
+            activeDateArray[0] +
+            "-" +
+            activeDateArray[1];
+
+            if(res.data.label){
+              let label = res.data.label
+              this.labelArray = label.substr(0, label.length).split("#");
+            }else{
+              this.labelArray = []
+            }
+        }
+      } else {
+        this.$toast(res.errmsg);
+      }
+    });
+
+    this.$api.stationGenjin({ customer_id: customer_id, cls: 2 }).then(res => {
+      if (res.errno === 0) {
+        if (res.data.data) {
+          this.genjin = res.data.data;
+        }
+      }
+    });
+  },
+  methods: {
+    onClick() {
+      document.documentElement.scrollTop = 0;
+    }
+  },
+  created() {
+    document.documentElement.scrollTop = 0;
+  }
+};
+</script>
+<style lang="less">
+.ccbCustomerDetail {
+  min-height: calc(100% - 130px);
+  background: #f5f5f5;
+  padding-top: 130px;
+  .top {
+    position: fixed;
+    top: 0;left: 0;z-index: 1;
+    background: url(../../images/topBg.jpg) no-repeat;
+    width: 100%;
+    height: 130px;
+    background-size: 100% 130px;
+    > p {
+      height: 50px;
+      line-height: 50px;
+      color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding-left: 16px;
+      img {
+        width: 10px;
+        height: 16px;
+        margin-right: 10px;
+      }
+      span {
+        line-height: 18px;
+      }
+    }
+    > div {
+      display: flex;
+      justify-content: space-around;
+      p {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-size: 14px;
+        margin-top: 10px;
+        img {
+          width: 15px;
+          height: 15px;
+          margin-bottom: 10px;
+        }
+      }
+      p:first-child {
+        img {
+          width: 13px;
+          height: 13px;
+        }
+      }
+    }
+  }
+  .listLi {
+    font-size: 14px;
+    display: flex;
+    margin: 0 15px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eeeeee;
+    .iconImg{
+      width: 16px;
+      text-align: center;
+      flex: none;
+      margin-right: 5px;
+      img {
+        max-width: 16px;
+        max-height: 16px;
+        margin-top: 2px;
+      }
+    }
+    .title {
+      flex: none;
+      width: 90px;
+      &.title7{
+        width: 110px;
+      }
+    }
+    .desc {
+      width: 100%;
+      text-align: right;
+      .tips{
+        color: #1c92ff;
+        padding: 0 5px;
+        display: inline-block;
+        border-radius: 10px;
+        margin: 2px;
+        border: 1px solid #1c92ff;
+      }
+    }
+  }
+  .dataTitle {
+    padding: 0 15px;
+    font-size: 14px;
+    line-height: 32px;
+  }
+  .numDetail {
+    background: #ffffff;
+    .ulDiv {
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      div {
+        width: 25%;
+        text-align: center;
+        padding: 10px 0;
+        float: left;
+        position: relative;
+        &::after {
+          position: absolute;
+          content: " ";
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 1px;
+          background: #eeeeee;
+        }
+        &::before {
+          position: absolute;
+          content: " ";
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 1px;
+          background: #eeeeee;
+        }
+        span {
+          display: block;
+          line-height: 24px;
+          &:first-child {
+            color: #444444;
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+
+  .van-tabs {
+    .van-tabs__wrap{
+      position: fixed;
+      left: 0;right: 0; z-index: 1;
+    }
+    .van-tabs__content{
+      padding-top: 44px;
+    }
+    .van-tab__pane {
+      > div {
+        p {
+          font-size: 12px;
+          padding-left: 20px;
+          height: 24px;
+          line-height: 24px;
+          color: #aaa;
+        }
+        ul:first-of-type {
+          padding: 10px 20px;
+          border-bottom: 1px solid #eeeeee;
+          background: #fff;
+          li {
+            // height: 30px;
+            line-height: 24px;
+            color: #aaa;
+            font-size: 14px;
+            // display: flex;
+            // align-items: center;
+            position: relative;
+            &:first-child{
+              line-height: 30px;
+            }
+            img {
+              width: 15px;
+              height: 15px;
+              position: absolute;
+              left: 0;
+              top: 3px;
+            }
+            span {
+              display: inline-block;
+              line-height: 18px;
+              padding-left: 25px;
+            }
+          }
+          li:first-child {
+            margin-bottom: 5px;
+            img {
+              width: 20px;
+              height: 20px;
+              position: absolute;
+              left: 0;
+              top: 3px;
+            }
+            span:first-of-type {
+              color: #000;
+            }
+            span:last-of-type {
+              font-size: 12px;
+              border: 1px solid #1c92ff;
+              color: #1c92ff;
+              height: 20px;
+              line-height: 20px;
+              padding-left: 3px;
+              padding-right: 3px;
+              border-radius: 20px;
+              margin-left: 10px;
+            }
+          }
+        }
+      }
+    }
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+}
+</style>

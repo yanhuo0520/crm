@@ -1,0 +1,796 @@
+<template>
+  <div class="ccbCustomer">
+    <van-nav-bar :left-text="leftText" left-arrow fixed @click-left="leftBack" />
+    <div class="topRight">
+      <img class="topSearch" src="../../images/search.png" alt @click="searchAll" />
+      <img class="addBtn" src="../../images/addcom.png" alt @click="addCustomerBtn" v-if="cls == 1" />
+    </div>
+    
+
+    <!-- <div class="tagContent">
+      <van-cell
+        title="标签"
+        icon="http://sc.xfd365.com/crmImages/tags.png"
+        @click="goTagIndex"
+        is-link
+      />
+    </div> -->
+
+    <!-- 我的客户--建行客户 -->
+    <div class="content" v-if="customerLists!='' && cls == 2">
+      <div class="detail" v-for="(item,index) in customerLists" :key="index">
+        <div @click="toDetail(item.customer_id, item.site_id)">
+          <img src="../../images/customerName.png" alt />
+          <h4>{{item.customerName}}</h4>
+          <!-- <span v-if="item.status==1">正在跟进</span> -->
+        </div>
+        <ul @click="toDetail(item.customer_id, item.site_id)">
+          <li>
+            <img src="../../images/gongsi.png" alt />
+            <div class="label-cont">{{item.serverName}}</div>
+          </li>
+          <li v-if="item.label!= ''">
+            <img src="http://sc.xfd365.com/crmImages/tag.png" alt="">
+              <div class="label-cont">
+                <span class="label-tip" v-for="(itemLabel, indexLabe) in item.labelArray" :key="indexLabe">{{itemLabel}}</span>
+              </div>
+          </li>
+          <li>
+            <img src="../../images/secondBank.png" alt />
+            <span>{{item.secondBank}}</span>
+          </li>
+          <li v-if="item.type!='' && item.type != undefined">
+            <img src="../../images/customerStatus.png" alt />
+            <span v-if="item.type==1">到访</span>
+            <span v-else-if="item.type==2">电话</span>
+            <span v-else-if="item.type==3">微信</span>
+            <span v-else-if="item.type==4">短信</span>
+            <span v-else-if="item.type==5">其他</span>
+          </li>
+          <li v-if="item.follow_time!='' && item.follow_time != undefined">
+            <img src="../../images/time.png" alt />
+            <span>{{item.follow_time}}</span>
+          </li>
+        </ul>
+        <ul>
+          <li @click="toDetail(item.customer_id, item.site_id)">
+            <img src="../../images/detail.png" alt />
+            <span>查看详情</span>
+          </li>
+          <li @click="toGenjin(item.customer_id, item.customerName, item.site_id)">
+            <img src="../../images/customerGenjin.png" alt />
+            <span>跟进</span>
+          </li>
+          <li @click="tel(item.customer_id)">
+            <img src="../../images/customerPhone.png" alt />
+            <span>电话</span>
+          </li>
+          <li @click="siteStatiseAdd(item.customer_id, item.site_id)">
+            <img src="../../images/inzhandian.png" alt />
+            <span>站点统计</span>
+          </li>
+        </ul>
+
+        <van-overlay
+          :show="item.customer_id==customerId"
+          @click="closeOverlay"
+          style="height:100vh"
+        >
+          <van-action-sheet
+            v-model="isPhone"
+            title="拨打电话"
+            :round="isRound"
+            @click.stop
+            @cancel="closeOverlay"
+          >
+            <a
+              :href="'tel:'+item.phones"
+              style="color:#000;margin:20px;display:block;"
+              @click="dialNum"
+            >{{item.phones}}</a>
+          </van-action-sheet>
+        </van-overlay>
+      </div>
+    </div>
+    <div v-else-if="customerLists=='' && !loading && cls == 2" class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+
+    <!-- 新增客户列表 -->
+    <div class="content" v-if="stationLists!='' && cls == 1">
+      <div class="detail" v-for="(item,index) in stationLists" :key="index">
+        <div @click="toDetail(item.station_id, item.site_id)" v-if="item.name">
+          <img src="../../images/customerName.png" alt />
+          <h4>{{item.name}}</h4>
+          <!-- <span v-if="item.status==1">正在跟进</span> -->
+        </div>
+        <ul @click="toDetail(item.station_id, item.site_id)">
+          <li v-if="item.station_name">
+            <img src="../../images/gongsi.png" alt />
+            <div class="label-cont">{{item.station_name}}</div>
+          </li>
+          <li v-if="item.label!= ''">
+            <img src="http://sc.xfd365.com/crmImages/tag.png" alt />
+            <div class="label-cont">
+              <span
+                class="label-tip"
+                v-for="(itemLabel, indexLabe) in item.labelArray"
+                :key="indexLabe"
+              >{{itemLabel}}</span>
+            </div>
+          </li>
+          <li v-if="item.type!=''">
+            <img src="../../images/customerStatus.png" alt />
+            <span v-if="item.type==1">到访</span>
+            <span v-else-if="item.type==2">电话</span>
+            <span v-else-if="item.type==3">微信</span>
+            <span v-else-if="item.type==4">短信</span>
+            <span v-else-if="item.type==5">其他</span>
+          </li>
+          <li v-if="item.follow_time!=''">
+            <img src="../../images/time.png" alt />
+            <span>{{item.follow_time}}</span>
+          </li>
+        </ul>
+        <ul>
+          <li @click="toDetail(item.station_id, item.site_id)">
+            <img src="../../images/detail.png" alt />
+            <span>查看详情</span>
+          </li>
+          <li @click="toGenjin(item.station_id, item.name, item.site_id)">
+            <img src="../../images/customerGenjin.png" alt />
+            <span>跟进</span>
+          </li>
+          <li @click="tel(item.station_id)">
+            <img src="../../images/customerPhone.png" alt />
+            <span>电话</span>
+          </li>
+          <li @click="more(item.station_id, item.station_name)">
+            <img src="../../images/customerMore.png" alt />
+            <span>更多</span>
+          </li>
+        </ul>
+        <van-overlay :show="item.station_id==stationId" @click="closeOverlay" style="height:100vh">
+          <van-action-sheet
+            v-model="isPhone"
+            title="拨打电话"
+            :round="isRound"
+            @click.stop
+            @cancel="closeOverlay"
+          >
+            <a
+              :href="'tel:'+item.mobile"
+              style="color:#000;margin:20px;display:block;"
+              @click="dialNum"
+            >{{item.mobile}}</a>
+          </van-action-sheet>
+        </van-overlay>
+
+        <van-overlay
+          :show="(item.station_id + '-' + item.station_name)==stationName && stationName != ''"
+          style="height:100vh"
+          @click="closeOverlay"
+        >
+          <van-action-sheet
+            v-model="isMore"
+            title="更多操作"
+            :round="isRound"
+            @click.stop
+            @cancel="closeOverlay"
+          >
+            <ul>
+              <li @click="addRel(item.station_id)">
+                <img src="../../images/customerAdd.png" alt />
+                <span>增加关联客户</span>
+              </li>
+              <li @click="siteStatiseAdd(item.station_id, item.site_id)">
+                <img src="../../images/inzhandian.png" alt />
+                <span>站点统计</span>
+              </li>
+              <li @click="edit(item.station_id)">
+                <img src="../../images/customerEdit.png" alt />
+                <span>编辑客户</span>
+              </li>
+              <li @click="del(item.station_id)">
+                <img src="../../images/customerDel.png" alt />
+                <span>删除客户</span>
+              </li>
+            </ul>
+          </van-action-sheet>
+        </van-overlay>
+      </div>
+    </div>
+    <div v-else-if="stationLists=='' && !loading && cls == 1" class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+    <div class="btnChange">
+      <van-button :icon="this.comstmerImg1" type="info" :class="{'vanInfoActive': this.cls == 2}" @click="mycustomer">我的客户</van-button>
+      <van-button :icon="this.comstmerImg2" type="info" :class="{'vanInfoActive': this.cls == 1}" @click="addCustomer">新增客户</van-button>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "ccbCustomer",
+  data() {
+    return {
+      leftText: '我的客户',
+      loading: 1,
+      isRound: false,
+      isMore: false,
+      isPhone: false,
+
+      customerLists: [],
+      customerId: "",
+
+      stationLists: [],
+      stationId: "",
+      stationName: "",
+      page: 1,
+      pageSize: 10,
+      totalPage: 1,
+      from: "",
+      cls: 2,
+      comstmerImg1: 'http://sc.xfd365.com/crmImages/comstmer1.png',
+      comstmerImg2: 'http://sc.xfd365.com/crmImages/comstmer2Ac.png'
+
+    };
+  },
+  mounted() {
+    console.log("mounted");
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    this.getList();
+    document.documentElement.scrollTop = 0;
+    window.addEventListener("scroll", this.scrollBottom);
+  },
+  methods: {
+    // 我的标签
+    goTagIndex() {
+      this.$router.push({
+        path: "/tagIndexList",
+        query: {
+          customer_type: 2 // 2 查询建行
+        }
+      });
+    },
+    // 切换我的客户
+    mycustomer(){
+      document.documentElement.scrollTop = 0;
+      this.cls = 2
+      this.comstmerImg1 = 'http://sc.xfd365.com/crmImages/comstmer1.png'
+      this.comstmerImg2 = 'http://sc.xfd365.com/crmImages/comstmer2Ac.png'
+      this.leftText = "我的客户"
+      this.loading = 1
+      this.page = 1
+      this.totalPage = 1
+      this.customerLists = []
+      this.getList()
+    },
+    // 切换新增客户
+    addCustomer(){
+      document.documentElement.scrollTop = 0;
+      this.cls = 1
+      this.comstmerImg1 = 'http://sc.xfd365.com/crmImages/comstmer1Ac.png'
+      this.comstmerImg2 = 'http://sc.xfd365.com/crmImages/comstmer2.png'
+      this.leftText = "新增客户"
+      this.loading = 1
+      this.page = 1
+      this.totalPage = 1
+      this.stationLists = []
+      this.getList()
+    },
+    scrollBottom(e) {
+      let that = this;
+      var scrollTop = e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+      let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+      let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight); /*文档完整的高度*/
+      if (scrollHeight - clientHeight - scrollTop <= 0 && that.page < that.totalPage) {
+        that.page += 1;
+        that.loading = 1;
+        that.getList();
+      }
+    },
+    getList() {
+      var that = this;
+      if(this.cls == 2){
+        this.$api.ccbCustomerLists({ page: that.page, size: that.pageSize }).then(res => {
+          that.totalPage = res.total_page;
+          if (res.errno === 0) {
+            if (that.page == 1) {
+              that.loading = 0;
+              that.customerLists = res.data;
+            } else if (res.data.length > 0) {
+              that.customerLists.push(...res.data);
+              if (res.data.length < that.pageSize ||(res.data.length == that.pageSize && that.page == that.totalPage)) {
+                that.loading = 0;
+              }
+            } else if (that.page == that.totalPage) {
+              that.loading = 0;
+            }
+
+            if(that.customerLists){
+                  that.customerLists.forEach(ele => {
+                      if(ele.label){
+                        // ele.labelArray = ele.label.substr(0, ele.label.length - 1).split("#"); // 最后一位有#
+                        ele.labelArray = ele.label.substr(0, ele.label.length).split("#");
+                      }else{
+                        ele.labelArray = []
+                      }
+                  })
+              } 
+
+              
+          } else {
+            that.loading = 0;
+            that.customerLists = []
+            this.$toast(res.errmsg);
+          }
+        });
+      }else{
+        this.$api.stationList({ page: that.page, size: that.pageSize }).then(res => {
+          that.totalPage = res.data.total;
+          if (res.errno === 0) {
+            if (that.page == 1) {
+              that.loading = 0;
+              that.stationLists = res.data.data;
+            } else if (res.data.data.length > 0) {
+              that.stationLists.push(...res.data.data);
+              if (res.data.data.length < that.pageSize || (res.data.data.length == that.pageSize && that.page == that.totalPage)) {
+                that.loading = 0;
+              }
+            } else if (
+              that.page == that.totalPage ||
+              (res.data.data.length == that.pageSize &&
+                that.page == that.totalPage)
+            ) {
+              that.loading = 0;
+            }
+
+            if (that.stationLists) {
+              that.stationLists.forEach(ele => {
+                if (ele.label) {
+                  // ele.labelArray = ele.label.substr(0, ele.label.length - 1).split("#"); // 最后一位有#
+                  ele.labelArray = ele.label
+                    .substr(0, ele.label.length)
+                    .split("#");
+                } else {
+                  ele.labelArray = [];
+                }
+              });
+            }
+          } else {
+            that.loading = 0;
+            that.stationLists = []
+            this.$toast(res.errmsg);
+          }
+        });
+      }
+      
+    },
+    searchAll() {
+      if(this.cls == 2){
+        localStorage.setItem("ccbSearchFrom", "ccbCustomer")
+        this.$router.push({
+          path: "/ccbSearch"
+        });
+      }else{
+        this.$router.push({
+          path: "/search"
+        });
+      }
+      
+    },
+    leftBack() {
+      // this.$router.go(-1)
+      this.$router.push({
+        path: "/"
+      });
+    },
+    toDetail(id, site_id) {
+      localStorage.removeItem("siteId")
+      localStorage.removeItem("tagupdate");
+      localStorage.removeItem("editGlustomer")
+      let path;
+      if(this.cls == 2){
+        path = "/ccbCustomerDetail"
+      }else{
+        path = "/customerDetail"
+      }
+      this.$router.push({
+        path: path,
+        query: {
+          id: id,
+          site_id: site_id
+        }
+      });
+      
+    },
+    tel(id) {
+      this.isPhone = true;
+      if(this.cls == 2){
+        this.customerId = id;
+      }else{
+        this.stationId = id;
+      }
+    },
+    
+    // 统计打电话次数
+    dialNum(){
+      this.$api.dialNum().then(res=>{})
+    },
+    more(id, name) {
+      localStorage.setItem("reIsBack", "");
+      this.isMore = true;
+      this.stationName = id + "-" + name;
+    },
+    closeOverlay() {
+      this.isPhone = false;
+      this.isMore = false;
+      this.customerId = "";
+      this.stationId = "";
+      this.stationName = "";
+    },
+    toGenjin(id, name, site_id) {
+      if(this.cls == 2){
+        this.$router.push({
+          path: "/customerGenjin",
+          query: {
+            customer_id: id,
+            station_id: 0,
+            customerName: name,
+            cls: this.cls,
+            keyword: this.value,
+            site_id: site_id
+          }
+        });
+      }else{
+        this.$router.push({
+          path: "/customerGenjin",
+          query: {
+            station_id: id,
+            customer_id: 0,
+            customerName: name,
+            cls: this.cls,
+            site_id: site_id
+          }
+        });
+      }
+      
+    },
+    siteStatiseAdd(id, site_id){
+      this.$router.push({
+        path: "/siteAdd",
+        query: {
+          id: id,
+          site_id: site_id,
+          cls: this.cls
+        }
+      });
+    },
+    addRel(id) {
+      this.$router.push({
+        path: "/addGlCustomer",
+        query: {
+          id: id,
+          cls: this.cls
+        }
+      });
+    },
+    // 新增客户--增加客户
+    addCustomerBtn(){
+      localStorage.setItem("station_id", "");
+      this.$router.push({
+        path: "/addCustomer",
+        query: {
+          cls: this.cls
+        }
+      });
+    },
+    edit(id) {
+      this.$router.push({
+        path: "/addCustomer",
+        query: {
+          id: id,
+          cls: this.cls
+        }
+      });
+    },
+    del(id) {
+      this.$api.stationDel({ station_id: id }).then(res => {
+        this.$toast(res.errmsg);
+        if (res.errno === 0) {
+          this.page = 1;
+          this.getList();
+        }
+      });
+    }
+  },
+  beforeRouteEnter(to, from, next) {
+    if (from.path == "/") {
+      to.meta.from = "index";
+      to.meta.cls = 2
+    } else if (from.path == "/ucenter") {
+      to.meta.from = "ucenter";
+      to.meta.cls = 2
+    }
+    // let from0 = from.query.from
+    // to.meta.from = from0;
+    // let cls = from.query.cls
+    // to.meta.cls = cls;
+    
+    // console.log(from)
+    // console.log(cls)
+    if(from.path == "/customerGenjin"){
+      let cls = from.query.cls
+      to.meta.cls = cls;
+    }
+
+    if(from.path == "/ccbCustomerDetail" || from.path == "/ccbSearch"){
+      to.meta.cls = 2
+    }else if(from.path == "/customerDetail" || from.path == "/search" || from.path == "/addGlCustomer"|| from.path == "/addCustomer"){
+      to.meta.cls = 1
+    }
+    let tagupdate = localStorage.getItem("tagupdate")
+    let siteId = localStorage.getItem("siteId")
+    if (from.path == "/" ||
+      (from.path == "/ccbCustomerDetail" && tagupdate == "1") || // 刷新标签
+      (from.path == "/customerDetail" && tagupdate == "1") || // 刷新标签
+      (from.path == "/customerDetail" && siteId !== null) || // 更新站点，需要刷新
+      from.path == "/customerGenjin" ||
+      from.path == "/ccbSearch" || 
+      from.path == "/search" || 
+      from.path == "/addCustomer" || 
+      from.path == "/tagIndexList" ||
+      from.path == "/siteAdd"
+    ) {
+      to.meta.isBack = false;
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  activated() {
+    console.log("activated");
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    
+    this.from = this.$route.meta.from;
+    this.cls = this.$route.meta.cls;
+    if (!this.$route.meta.isBack) {
+      // 不缓存
+      document.documentElement.scrollTop = 0;
+      
+      this.page = 1
+      this.totalPage = 1
+      this.loading = 1;
+      // this.lists = [];
+      this.getList();
+    }
+    this.isPhone = false;
+    this.isMore = false;
+    this.customerId = "";
+    this.stationId = "";
+    this.stationName = "";
+    this.$route.meta.isBack = false;
+  },
+};
+</script>
+<style lang="less">
+.ccbCustomer {
+  min-height: calc(100% - 50px);
+  background: #f5f5f5;
+  padding-top: 50px;
+  .btnChange{
+    position: fixed;
+    right: -1px;
+    bottom: 60px;
+    .van-button{
+      height: 36px;
+      line-height: 36px;
+      padding: 0 10px;
+      color: #1989fa;
+      background-color: #ffffff;
+      &.vanInfoActive{
+        color: #fff;
+        background-color: #1989fa;
+      }
+      &:first-child{
+        margin-right: -4px;
+        border-top-left-radius: 20px;
+        border-bottom-left-radius: 20px;
+        // position: relative;
+        // &::after{
+        //   position: absolute;
+        //   content: '';
+        //   width: 1px;
+        //   height: 16px;
+        //   background: rgba(255, 255, 255, 0.3);
+        //   right: -2px;
+        //   top: 10px;
+        //   z-index: 1;
+        // }
+      }
+    }
+  }
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .topRight {
+    position: fixed;
+    right: 5px;
+    top: 0;
+    z-index: 1;
+    img{
+      width: 18px;
+      padding: 15px 10px;
+    }
+  }
+  .tagContent {
+    margin-bottom: 10px;
+    .van-icon__image {
+      width: 1.6em;
+      height: 1.6em;
+      margin-top: -2px;
+    }
+  }
+  .content {
+    .detail {
+      margin-bottom: 10px;
+      background: #fff;
+      > div {
+        padding-left: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 50px;
+        border-bottom: 1px solid #eeeeee;
+        > img {
+          width: 15px;
+          height: 15px;
+        }
+        h4 {
+          margin: 0 10px;
+        }
+        > span {
+          font-size: 14px;
+          background: #ddefff;
+          color: #1c92ff;
+          border-radius: 20px;
+          padding: 3px 10px;
+        }
+      }
+      > ul:first-of-type {
+        padding: 10px 20px;
+        border-bottom: 1px solid #eeeeee;
+        li {
+          // line-height: 30px;
+          padding: 3px 0;
+          color: #aaa;
+          font-size: 14px;
+          img {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+          }
+          .label-cont {
+            padding-left: 25px;
+            margin-top: -18px;
+          }
+          .label-tip {
+            border-radius: 10px;
+            margin-right: 5px;
+            margin-top: 5px;
+            padding: 0 5px;
+            display: inline-block;
+            line-height: 20px;
+            color: #1c92ff;
+            border:1px solid rgba(28, 146, 255, 1);
+            // &:nth-of-type(1) {
+            //   border: 1px solid rgba(28, 146, 255, 1);
+            //   background: rgba(28, 146, 255, 0.1);
+            // }
+            // &:nth-of-type(2) {
+            //   background: rgba(255, 151, 28, 0.1);
+            //   border: 1px solid rgba(255, 151, 28, 1);
+            // }
+            // &:nth-of-type(3) {
+            //   background: rgba(28, 252, 255, 0.1);
+            //   border: 1px solid rgba(50, 209, 211, 1);
+            // }
+            // &:nth-of-type(4) {
+            //   background: rgba(229, 206, 13, 0.1);
+            //   border: 1px solid rgba(225, 193, 34, 1);
+            // }
+            // &:nth-of-type(5) {
+            //   background: rgba(28, 255, 172, 0.1);
+            //   border: 1px solid rgba(25, 226, 152, 1);
+            // }
+          }
+        }
+      }
+      > ul:last-of-type {
+        display: flex;
+        justify-content: flex-start;
+        li {
+          width: 50%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 50px;
+          border-right: 1px solid #eeeeee;
+          img {
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+  }
+  .van-popup {
+    .van-action-sheet__header {
+      text-align: left;
+      padding-left: 20px;
+    }
+    ul {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      height: 84px;
+      li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-left: 20px;
+        img {
+          width: 20px;
+          height: 20px;
+          margin-bottom: 5px;
+        }
+      }
+    }
+
+    p {
+      border-bottom: 1px solid #eee;
+      height: 50px;
+      line-height: 50px;
+      padding-left: 20px;
+    }
+  }
+
+  .van-overlay {
+    .van-overlay {
+      display: none;
+    }
+  }
+}
+</style>

@@ -1,0 +1,149 @@
+<template>
+    <div class="daiban">
+        <van-nav-bar
+            left-text="新建任务"
+            left-arrow
+            fixed
+            @click-left="$router.go(-1)"
+        />
+
+        <div class="marBottom">
+            <van-cell title="选择客户" :value="customerName"  icon="http://sc.xfd365.com/crmImages/customerName.png" is-link @click="isCustomer=true"></van-cell>
+            <van-cell title="执行时间" :value="time" icon="http://sc.xfd365.com/crmImages/genjinTime.png" is-link @click="isTime=true"></van-cell>
+        </div>
+        <div class="marBottom">
+            <van-cell title="任务内容" icon="http://sc.xfd365.com/crmImages/genjinContent.png"></van-cell>
+            <van-field
+                rows="2"
+                autosize
+                type="textarea"
+                placeholder="请输入跟进内容"
+                v-model="content"
+            />
+        </div>
+        <div class="marBottom">
+            <van-cell title="归属人员" :value="userName" icon="http://sc.xfd365.com/crmImages/guishu.png" />
+        </div>
+
+        <button class="save" @click="saveInfo">保存</button>
+
+        <van-action-sheet v-model="isCustomer" title="客户" @select="onSelectCustomer" :round="isRound" >
+          <ul>
+            <li v-for="(item,index) in stationLists" :key="index" @click="selectCus(item.station_id,item.name)" style="padding: 10px 20px;">{{item.station_name}}:{{item.name}}</li>
+          </ul>
+        </van-action-sheet>
+
+        <van-overlay :show="isTime" @click="isTime = false" />
+        
+        <van-datetime-picker
+        v-model="currentDate"
+        type="date"
+        :min-date="minDate"
+        v-show="isTime"
+        @confirm="handleTime"
+        @cancel="isTime=false"
+        />
+    </div>
+</template>
+<script>
+export default {
+  name: "daiban",
+  data () {
+    return {
+        isCustomer: false,
+        isRound: false,
+        isTime:false,
+        currentDate: new Date(),
+        minDate: new Date(1900, 1, 1),
+        time: "请选择",
+        stationLists:[],
+        customerName: '请选择',
+        stationId: '',
+        userName: '',
+        content: ''
+    };
+  },
+  mounted(){
+      this.userName = localStorage.getItem('userName')
+      this.$api.stationList().then(res => {
+        if (res.errno === 0) {
+            this.stationLists = res.data.data
+        }
+      });
+  },
+  methods:{
+      onSelectCustomer(){
+
+      },
+      handleTime(value) {
+        var d = new Date(value);
+        var datetime = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+        this.time = datetime;
+        this.isTime = false;
+      },
+      selectCus(id,name){
+        this.stationId = id
+        this.customerName = name;
+        this.isCustomer = false;
+      },
+      saveInfo(){
+          this.$api.addTask({
+              task_id: '',
+              content: this.content,
+              station_id: this.stationId,
+              exec_time: this.time
+          }).then(res=>{
+              if(res.errno == 0){
+                  this.$toast(res.errmsg)
+                  this.$router.go(-1)
+              }else{
+                  this.$toast(res.errmsg)
+              }
+          })
+      }
+  }
+}
+</script>
+<style lang="less">
+.daiban{
+    min-height: calc(100% - 100px);
+    padding-top: 50px;
+    padding-bottom: 50px;
+    background: #f5f5f5;
+    .van-nav-bar{
+        background: url(../images/msgBg.jpg) no-repeat;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-size: 100% 50px;
+        .van-nav-bar__text{
+            color: #fff;
+        }
+        .van-icon{
+            color: #fff;
+        }
+    }
+
+    .marBottom{
+        margin-bottom: 10px;
+        background: #fff;
+    }
+    button.save {
+        width: 100%;
+        height: 50px;
+        display: block;
+        border: none;
+        background: #1c92ff;
+        color: #fff;
+        position: fixed;
+        bottom: 0;
+    }
+
+    .van-picker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+  }
+}
+</style>

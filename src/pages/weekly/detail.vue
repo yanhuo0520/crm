@@ -1,0 +1,326 @@
+<template>
+  <div class="weeklyDetail">
+    <div class="top">
+      <p @click="leftBack">
+        <img src="../../images/goback.png" alt />
+        <span>{{userName}}的周报</span>
+      </p>
+      <ul>
+        <li>
+          <span>{{reportData.station}}</span>
+          <span>新增客户</span>
+        </li>
+        <li>
+          <span>{{reportData.follow}}</span>
+          <span>跟进客户</span>
+        </li>
+        <li>
+          <span>{{reportData.bai_follow}}</span>
+          <span>拜访客户</span>
+        </li>
+        <li>
+          <span>{{reportData.zong}}</span>
+          <span>管理客户</span>
+        </li>
+      </ul>
+    </div>
+    <div class="content">
+      <div class="marBottom">
+        <van-cell class="cellDate" title="报告时间" :value="start_time_new + '-' + end_time_new" icon="http://sc.xfd365.com/crmImages/genjinTime.png"></van-cell>
+        <van-cell
+          class="getAddress"
+          title="所在位置"
+          :value="detailCont.address"
+          icon="http://sc.xfd365.com/crmImages/dingwei.png"
+        />
+      </div>
+      <div class="marBottom">
+        <van-cell title="本周总结" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+        <van-field
+          rows="2"
+          autosize
+          type="textarea"
+          readonly
+          :value="detailCont.now_summary"
+        />
+      </div>
+      <div class="marBottom">
+        <van-cell title="上传图片" icon="http://sc.xfd365.com/crmImages/pic.png" is-link></van-cell>
+        <!-- <van-uploader v-model="fileList1"/> -->
+        <van-uploader v-model="fileList1" :preview-full-image="previewFullImage" :deletable="deletable" :show-upload="showUpload" @click-preview="clickPreview"/>
+        <div class="image-preview" v-if="ifPreview">
+              <van-image-preview
+                    v-model="ifPreview"
+                    :images="thumbListPre"
+                    :loop="isLoop"
+                    :startPosition = "startPosition"
+                    @change="onChange"
+                    @close="onClose()"
+                    
+                >
+                <template v-slot:index>{{pageIn}} / {{totalPage}}</template>
+                <div slot="cover" class="color-high">
+                  <van-icon name="down" class="down-img" @click="downLoadHandle"/>
+                </div>
+              </van-image-preview>
+            </div>
+
+      </div>
+      <div class="marBottom">
+        <van-cell title="上传附件" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+        <van-uploader v-model="fileList2" :deletable="deletable" :show-upload="showUpload"/>
+      </div>
+      <div class="marBottom">
+        <van-cell title="下周计划" icon="http://sc.xfd365.com/crmImages/plan.png"></van-cell>
+        <van-field
+          rows="2"
+          autosize
+          type="textarea"
+          readonly
+          :value="detailCont.future_plan"
+        />
+      </div>
+      <div class="marBottom">
+        <van-cell title="汇报对象" icon="http://sc.xfd365.com/crmImages/name.png"></van-cell>
+        <ul class="selectUl">
+          <li v-for="(item, index) in detailCont.report_username" :key="index">
+            <span>{{item.substr(0, 1)}}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "weeklyDetail",
+  data() {
+    return {
+      userName: '',
+      report_id: '',
+      start_time: '',
+      start_time_new: '',
+      end_time: '',
+      end_time_new: '',
+      fileList1: [],
+      fileList2: [],
+      reportData: {},
+      detailCont: {},
+
+      previewFullImage: false, // 是否在点击预览图后展示全屏图片预览
+      deletable: false, // 是否展示删除按钮
+      showUpload: false, // 是否展示上传区域
+      isLoop: true,
+      ifPreview: false,
+      thumbListPre: [],
+      downUrl: '',
+      startPosition: 1,
+      pageIn: 1,
+      totalPage: 0
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+    document.documentElement.scrollTop = 0;
+    this.userName = localStorage.getItem("userName")
+    if (this.$route.query.user_name) {
+      this.userName = this.$route.query.user_name
+    }
+    let report_id = this.$route.query.report_id
+    let start_time = this.$route.query.start_time
+    let start_time_new = start_time.substr(0, start_time.length).split("-")
+    this.start_time_new = start_time_new[0] + '/' + start_time_new[1] + '/' +start_time_new[2]
+    let end_time = this.$route.query.end_time
+    let end_time_new = end_time.substr(0, end_time.length).split("-")
+    this.end_time_new = end_time_new[0] + '/' + end_time_new[1] + '/' +end_time_new[2]
+    this.report_id = report_id
+    this.start_time = start_time
+    this.end_time = end_time
+    this.getReport()
+    this.getDetail()
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    },
+    // 获取头部数据
+    getReport(){
+      let data={}
+        data.lat_time = this.start_time
+        data.end_time = this.end_time
+      this.$api.reportReport(data).then(res=>{
+        if(res.errno ===0){
+          this.reportData = res.data
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    },
+    getDetail(){
+      this.$api.reportDetail({report_id: this.report_id}).then(res=>{
+        if(res.errno === 0){
+          this.detailCont = res.data
+          if(res.data.pic){
+            var pics = res.data.pic;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              this.thumbListPre = r
+              this.totalPage = r.length
+              r = r.map(item => ({ url: item }));
+              this.fileList1 = JSON.parse(JSON.stringify(r));
+          }
+
+          if(res.data.file){
+            var pics = res.data.file;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({ url: item }));
+              this.fileList2 = JSON.parse(JSON.stringify(r));
+          }
+        }
+      })
+    },
+    clickPreview(file, detail){
+      this.downUrl = file.url
+      this.startPosition = detail.index
+      this.pageIn = detail.index + 1
+      this.ifPreview = true
+    },
+    onChange(index){
+      this.downUrl = this.fileList1[index].url
+      this.pageIn = index + 1
+    },
+    onClose(index, url) {
+      this.downUrl = '';
+      this.ifPreview = false
+    },
+    downLoadHandle(){
+      // console.log(this.downUrl)
+      if(typeof android != 'undefined'){
+        android.saveToPhone(this.downUrl); // 调用Android方法保存图片到手机相册
+        this.$toast({
+          message: '保存成功',
+          icon: 'success'
+        })
+      }else{
+        var alink = document.createElement("a");
+        var event = new MouseEvent('click')  
+        alink.href = this.downUrl;
+        alink.download = "pic"; //图片名
+        alink.dispatchEvent(event);
+      }
+    }
+  }
+ 
+
+};
+</script>
+<style lang="less">
+.weeklyDetail {
+  min-height: calc(100% - 50px);
+  background: #f5f5f5;
+  padding-top: 50px;
+  .top {
+    z-index: 1;
+    background: #ffffff url(../../images/topBg.jpg) no-repeat;
+    width: 100%;
+    height: 75px;
+    background-size: 100% 75px;
+    > p {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      background: #ffffff url(../../images/topBg.jpg) no-repeat top;
+      font-size: 14px;
+      height: 50px;
+      line-height: 50px;
+      color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding-left: 16px;
+      img {
+        width: 10px;
+        height: 16px;
+        margin-right: 10px;
+      }
+      span {
+        line-height: 18px;
+      }
+    }
+    ul {
+      margin: 0 10px;
+      padding: 5px;
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      border-radius: 5px;
+      background: #f3feff url(../../images/inheader1.png) no-repeat center
+        bottom;
+      background-size: 100% auto;
+      li {
+        width: 25%;
+        padding: 5px 0;
+        text-align: center;
+      }
+      span {
+        display: block;
+        line-height: 20px;
+        &:first-child {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+    .selectUl {
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      color: #ffffff;
+      padding: 5px;
+      li {
+        margin: 5px 8px;
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+        font-size: 16px;
+        text-align: center;
+        background: #1c92ff;
+        border-radius: 50%;
+        position: relative;
+      }
+    }
+  }
+  .van-image-preview__cover{
+    width: 48px;
+    height: 48px;
+    text-align: center;
+    line-height: 54px;
+    bottom: 12% !important;
+    left: calc(50% - 24px) !important;
+    top: auto;
+    font-size: 24px;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 50%;
+  }
+  .van-uploader {
+    padding: 10px 15px 0 15px;
+  }
+  .cellDate .van-cell__title,
+  .getAddress .van-cell__title {
+    flex: 0.35;
+  }
+}
+</style>

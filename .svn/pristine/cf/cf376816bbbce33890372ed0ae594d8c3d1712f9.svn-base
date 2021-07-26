@@ -1,0 +1,330 @@
+<template>
+    <div class="customer">
+        <van-nav-bar
+            left-text="我的客户"
+            left-arrow
+            @click-left="leftBack"
+        >
+            <van-icon name="search" slot="right" @click="$router.push('/search')" />
+        </van-nav-bar>
+
+        <!-- <p class="time">12-20</p> -->
+        
+        <van-collapse v-model="activeName1" accordion v-if="lists!=''">
+            <van-collapse-item
+                :title="item.station_name"
+                :name="item.station_id"
+                icon="http://sc.xfd365.com/crmImages/customerName.png"
+                v-for="(item,index) in lists"
+                :key="index"
+            >
+                <ul>
+                    <li v-if="item.follow_time">
+                        <img src="../../images/time.png" alt="">
+                        <span>{{item.follow_time}}</span>
+                    </li>
+                    <li v-if="item.station_address">
+                        <img src="../../images/dingwei.png" alt="">
+                        <span>{{item.station_address}}</span>
+                    </li>
+                    <li v-if="item.note">
+                        <img src="../../images/beizhu.png" alt="">
+                        <span>{{item.note}}</span>
+                    </li>
+                </ul>
+                <ul>
+                    <li @click="toGenjin(item.station_id)">
+                        <img src="../../images/customerGenjin.png" alt="">
+                        <span>跟进</span>
+                    </li>
+                    <li @click="tel(item.station_id)">
+                        <img src="../../images/customerPhone.png" alt="">
+                        <span>电话</span>
+                    </li>
+                    <li @click="clickMore(item.station_name)">
+                        <img src="../../images/customerMore.png" alt="">
+                        <span>更多</span>
+                    </li>
+                </ul>
+                <van-overlay :show="item.station_id==stationId" @click="closeOverlay" style="height:100vh">
+                    <van-action-sheet v-model="isPhone" title="拨打电话" :round="isRound" @click.stop @click="closeOverlay">
+                        <a :href="'tel:'+item.mobile" style="color:#000;margin:20px;display:block;">{{item.mobile}}</a>
+                    </van-action-sheet>
+                </van-overlay>
+                
+                <van-overlay :show="item.station_name==stationName" style="height:100vh" @click="closeOverlay">
+                    <van-action-sheet v-model="isMore" title="更多操作" :round="isRound" @click.stop @click="closeOverlay">
+                        <ul>
+                            <li @click="addRel(item.station_id)">
+                                <img src="../../images/customerAdd.png" alt="">
+                                <span>增加关联客户</span>
+                            </li>
+                            <li @click="edit(item.station_id)">
+                                <img src="../../images/customerEdit.png" alt="">
+                                <span>编辑客户</span>
+                            </li>
+                            <li @click="del(item.station_id)">
+                                <img src="../../images/customerDel.png" alt="">
+                                <span>删除客户</span>
+                            </li>
+                        </ul>
+                    </van-action-sheet>
+                </van-overlay>
+            </van-collapse-item>
+        </van-collapse>
+
+        <div v-else class="zanwu">
+            <img src="../../images/zanwu.png" alt="">
+            <span>暂无内容</span>
+        </div>
+
+        <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+    </div>
+</template>
+<script>
+export default {
+  name: "sign",
+  data () {
+    return {
+        activeName1: '',
+        loading: 0,
+        isPhone: false,
+        isMore: false,
+        isRound: false,
+        more:[
+            {name: '编辑客户',imgUrl: require('../../images/customerEdit.png')},
+            {name: '删除客户',imgUrl: require('../../images/customerDel.png')}
+        ],
+        lists: [],
+        stationId: '',
+        stationName: '',
+        page: 1,
+        pageSize: 15,
+        totalPage: 1
+    };
+  },
+  mounted(){
+      window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    //   this.$api.stationList().then(res=>{
+    //       if(res.errno === 0){
+    //           this.lists = res.data.data
+    //         //   this.activeName1 = this.lists[0].station_id  // 默认第一个展开
+    //       }
+    //   })
+  },
+  methods:{
+    leftBack(){
+        this.$router.go(-1)
+    },
+    scrollBottom(){
+        let that = this;
+        var scrollTop = 0;
+		if (document.documentElement && document.documentElement.scrollTop) {
+			scrollTop = document.documentElement.scrollTop;
+		} else if (document.body) {
+			scrollTop = document.body.scrollTop;
+        }
+
+        let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+        let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight); /*文档完整的高度*/
+        if ((scrollHeight - clientHeight - scrollTop) <= 0 && that.page < that.totalPage) {
+            that.page +=1
+            that.loading = 1
+            that.getList();
+        }
+    },
+    getList(){
+        let that = this
+        this.$api.stationList({page: that.page, size: that.pageSize}).then(res=>{
+            that.totalPage = res.data.total
+            if(res.errno === 0){
+                if(that.page == 1){
+                    that.loading = 0
+                    that.lists = res.data.data
+                }else if(res.data.data.length > 0){
+                    that.lists.push(...res.data.data)
+                    if(res.data.data.length < that.pageSize){
+                        that.loading = 0
+                    }
+                }else if(that.page == that.totalPage){
+                    that.loading = 0
+                }
+                
+            }
+        })
+    },
+    toGenjin(id){
+        this.$router.push({
+            path: '/customerGenjin',
+            query:{
+                id: id
+            }
+        })
+    },
+    tel(id){
+        this.isPhone = true
+        this.stationId = id
+    },
+    clickMore(name){
+        this.isMore=true
+        this.stationName = name
+    },
+    closeOverlay(){
+        this.isPhone = false
+        this.isMore = false
+        this.stationId = ''
+        this.stationName = ''
+    },
+    addRel(id){
+        this.$router.push({
+            path: '/addGlCustomer',
+            query:{
+                id: id
+            }
+        })
+    },
+    edit(id){
+        this.$router.push({
+            path: '/addCustomer',
+            query:{
+                id: id
+            }
+        })
+    },
+    del(id){
+        this.$api.stationDel({station_id: id}).then(res=>{
+            this.$toast(res.errmsg)
+            if(res.errno === 0){
+                this.reload()
+            }
+        })
+    }
+  },
+  created() {
+    this.getList();
+    window.addEventListener('scroll', this.scrollBottom)
+  }
+}
+</script>
+<style lang="less">
+.customer{
+    min-height: 100%;
+    background: #f5f5f5;
+    .van-nav-bar{
+        background: url(../../images/msgBg.jpg) no-repeat;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-size: 100% 50px;
+        .van-nav-bar__text{
+            color: #fff;
+        }
+        .van-icon{
+            color: #fff;
+            &.van-icon-search{
+                font-size: 24px;
+            }
+        }
+    }
+    .time{
+        font-size: 12px;
+        height: 18px;
+        line-height: 18px;
+        padding-left: 20px;
+        color: #aaa;
+    }
+
+    .van-collapse{
+        .van-collapse-item__content{
+            padding: 0;
+            >ul:first-of-type{
+                padding: 10px 20px;
+                    border-bottom: 1px solid #eeeeee;
+                    li{
+                        height: 30px;
+                        line-height: 30px;
+                        color: #aaa;
+                        font-size: 14px;
+                        img{
+                            width: 15px;
+                            height: 15px;
+                            margin-right: 5px;
+                        }
+                    }
+                }
+                ul:nth-of-type(2){
+                    display: flex;
+                    justify-content: flex-start;
+                    li{
+                        width: 33%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 50px;
+                        border-right: 1px solid #eeeeee;
+                        img{
+                            width: 20px;
+                            height: 20px;
+                            margin-right: 10px;
+                        }
+                    }
+                }
+                
+        }
+        
+    }
+
+    .van-popup{
+        .van-action-sheet__header{
+            text-align: left;
+            padding-left: 20px;
+        }
+        ul{
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            height: 84px;
+            li{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                margin-left: 20px;
+                img{
+                    width: 20px;
+                    height: 20px;
+                    margin-bottom: 5px;
+                }
+            }
+        }
+
+        p{
+            border-bottom: 1px solid #eee;
+            height: 50px;
+            line-height: 50px;
+            padding-left: 20px;
+        }
+    }
+
+    .van-loading{
+        padding: 10px 0;
+        text-align: center;
+    }
+    .zanwu{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding-top: 10%;
+        img{
+            width: 80%;
+        }
+    }
+    .van-overlay{
+        .van-overlay{
+            display: none;
+        }
+    }
+}
+</style>

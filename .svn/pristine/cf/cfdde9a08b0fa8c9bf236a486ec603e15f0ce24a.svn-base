@@ -1,0 +1,113 @@
+<template>
+  <div class="tagIndexList">
+    <van-nav-bar
+      left-text="标签"
+      right-text="新增标签"
+      left-arrow
+      @click-left="$router.go(-1)"
+      @click-right="addTag"
+    />
+    <p class="title">个人标签</p>
+    <div class="content" v-if="personList != ''">
+      <van-cell v-for="(item, index) in personList" :key="index" :title="item + '(10)'" @click="tagList(index, item)" is-link />
+    </div>
+    <div class="zanwu" v-else>
+      暂无个人标签
+    </div>
+    <p class="title">企业标签</p>
+    <ul v-if="companyList != ''">
+      <li v-for="(item, index) in companyList" :key="index" @click="tagListCom(index, item)" >{{item}}</li>
+    </ul>
+    <div class="zanwu" v-else>
+      暂无企业标签
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "tagIndexList",
+  data() {
+    return {
+      type: '',
+      personList: ["标签1", "标签2", "标签3"],
+      companyList: ["标签1", "标签2", "标签3"]
+    };
+  },
+  mounted() {
+    var type = this.$route.query.type
+    this.type = type // 1 其他新增客户    2 建行客户
+  },
+  methods: {
+    addTag() {
+      this.$router.push({
+        path: "/tagAdd",
+        query: {
+          type: this.type
+        }
+      });
+    },
+    tagList(id, tag) {
+      this.$router.push({
+        path: "/tagAdd",
+        query: {
+          type: this.type,
+          tag_id: id,
+          tag: tag
+        }
+      });
+    },
+    tagListCom(id, tag){
+      this.$router.push({
+        path: "/tagList",
+        query: {
+          type: this.type,
+          tag_id: id,
+          tag: tag
+        }
+      });
+    }
+  }
+};
+</script>
+<style lang="less">
+.tagIndexList {
+  min-height: 100%;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  p.title{
+    padding: 0 15px;
+    font-size: 14px;
+    line-height: 32px;
+    &:last-of-type{
+      margin-top: 20px;
+    }
+  }
+  ul{
+    padding: 0 15px;
+    li{
+      font-size: 14px;
+      float: left;
+      padding: 5px 10px;
+      background: #ffffff;
+      border-radius: 10px;
+      margin: 5px 10px 5px 0;
+    }
+  }
+  .zanwu{
+    padding: 0 15px;
+    color: #666666;
+  }
+}
+</style>

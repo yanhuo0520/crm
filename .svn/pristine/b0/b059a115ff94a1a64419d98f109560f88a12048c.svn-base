@@ -1,0 +1,567 @@
+<template>
+  <div class="search">
+    <div class="top">
+      <img src="../images/goback.png" alt @click="$router.go(-1)" />
+      <input type="text" placeholder="请输入搜索内容" v-model="value" />
+      <img src="../images/search.png" alt @click="searchAll" />
+    </div>
+
+    <p>历史搜索</p>
+
+    <ul>
+      <li v-for="(item,index) in historyList" :key="index" @click="searchItem(item)">{{item}}</li>
+    </ul>
+
+    <div class="content">
+      <div class="detail" v-for="(item,index) in lists" :key="index">
+        <div @click="toDetail(item.station_id)">
+          <img src="../images/gongsi.png" alt />
+          <h4>{{item.station_name}}</h4>
+          <!-- <span v-if="item.status==1">正在跟进</span> -->
+        </div>
+        <ul @click="toDetail(item.station_id)">
+          <li>
+            <img src="../images/customerName.png" alt />
+            <span>{{item.name}}</span>
+          </li>
+          <li v-if="item.label!= ''">
+            <img src="http://sc.xfd365.com/crmImages/tag.png" alt />
+            <div class="label-cont">
+              <span
+                class="label-tip"
+                v-for="(itemLabel, indexLabe) in item.labelArray"
+                :key="indexLabe"
+              >{{itemLabel}}</span>
+            </div>
+          </li>
+          <li v-if="item.type!=''">
+            <img src="../images/customerStatus.png" alt />
+            <span v-if="item.type==1">到访</span>
+            <span v-else-if="item.type==2">电话</span>
+            <span v-else-if="item.type==3">微信</span>
+            <span v-else-if="item.type==4">短信</span>
+            <span v-else-if="item.type==5">其他</span>
+          </li>
+          <li v-if="item.follow_time!=''">
+            <img src="../images/time.png" alt />
+            <span>{{item.follow_time}}</span>
+          </li>
+        </ul>
+        <ul>
+          <li @click="toDetail(item.station_id)">
+            <img src="../images/detail.png" alt />
+            <span>查看详情</span>
+          </li>
+          <li @click="toGenjin(item.station_id, item.name)">
+            <img src="../images/customerGenjin.png" alt />
+            <span>跟进</span>
+          </li>
+          <li @click="tel(item.station_id)">
+            <img src="../images/customerPhone.png" alt />
+            <span>电话</span>
+          </li>
+          <li @click="more(item.station_id, item.station_name)">
+            <img src="../images/customerMore.png" alt />
+            <span>更多</span>
+          </li>
+        </ul>
+        <van-overlay :show="item.station_id==stationId" @click="closeOverlay" style="height:100vh">
+          <van-action-sheet
+            v-model="isPhone"
+            title="拨打电话"
+            :round="isRound"
+            @click.stop
+            @click="closeOverlay"
+          >
+            <a
+              :href="'tel:'+item.mobile"
+              style="color:#000;margin:20px;display:block;"
+            >{{item.mobile}}</a>
+          </van-action-sheet>
+        </van-overlay>
+
+        <van-overlay
+          :show="(item.station_id + '-' + item.station_name)==stationName && stationName != ''"
+          style="height:100vh"
+          @click="closeOverlay"
+        >
+          <van-action-sheet
+            v-model="isMore"
+            title="更多操作"
+            :round="isRound"
+            @click.stop
+            @cancel="closeOverlay"
+          >
+            <ul class="customer">
+              <li @click="addRel(item.station_id)">
+                <img src="../images/customerAdd.png" alt />
+                <span>增加关联客户</span>
+              </li>
+              <li @click="edit(item.station_id)">
+                <img src="../images/customerEdit.png" alt />
+                <span>编辑客户</span>
+              </li>
+              <li @click="del(item.station_id)">
+                <img src="../images/customerDel.png" alt />
+                <span>删除客户</span>
+              </li>
+            </ul>
+          </van-action-sheet>
+        </van-overlay>
+      </div>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "search",
+  data() {
+    return {
+      historyList: [],
+      value: "",
+      loading: 0,
+      isRound: false,
+      isMore: false,
+      isPhone: false,
+      lists: [],
+      stationId: "",
+      stationName: "",
+      page: 1,
+      pageSize: 10,
+      totalPage: 1
+    };
+  },
+  created: function() {
+    document.documentElement.scrollTop = 0
+    var that = this;
+    //获取localstorage
+    let storage = window.localStorage;
+    if (storage.getItem("searchWord") !== null) {
+      that.historyList = JSON.parse(storage.getItem("searchWord"));
+    }
+  },
+  mounted(){
+    window.addEventListener("scroll", this.scrollBottom);
+  },
+  methods: {
+    scrollBottom() {
+      let that = this;
+      var scrollTop = 0;
+      if (document.documentElement && document.documentElement.scrollTop) {
+        scrollTop = document.documentElement.scrollTop;
+      } else if (document.body) {
+        scrollTop = document.body.scrollTop;
+      }
+
+      let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+      let scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      ); /*文档完整的高度*/
+
+      if (
+        scrollHeight - clientHeight - scrollTop <= 0 &&
+        that.page < that.totalPage
+      ) {
+        that.page += 1;
+        that.loading = 1;
+        that.searchAll();
+      }
+    },
+    searchAll: function(it) {
+      var that = this;
+      var val = that.value.trim();
+      if (val != "") {
+        that.loading = 1
+        let storage = window.localStorage;
+        if (storage.getItem("searchWord") == null) {
+          that.historyList.unshift(val);
+          storage.setItem("searchWord", JSON.stringify(that.historyList));
+        } else {
+          if (that.historyList.indexOf(val) != -1) {
+            that.historyList.splice(that.historyList.indexOf(val), 1);
+            that.historyList.unshift(val);
+          } else {
+            that.historyList.unshift(val);
+          }
+
+          if (that.historyList.length > 5) {
+            that.historyList.pop();
+          }
+          storage.setItem("searchWord", JSON.stringify(that.historyList));
+        }
+
+        this.$api.stationList({ keyword: val, page: that.page, size: that.pageSize }).then(res => {
+            that.totalPage = res.data.total;
+            if (res.errno === 0) {
+              if (res.data.data == "") {
+                that.loading = 0;
+                this.lists = [];
+                this.$toast("暂无此客户");
+              } else if (that.page == 1) {
+                that.loading = 0;
+                that.lists = res.data.data;
+              } else if (res.data.data.length > 0) {
+                that.lists.push(...res.data.data);
+                if (that.page == that.totalPage || (res.data.data.length == that.pageSize && that.page == that.totalPage)) {
+                  that.loading = 0;
+                }
+              } else if (that.page == that.totalPage) {
+                that.loading = 0;
+              }
+
+              if (that.lists) {
+                that.lists.forEach(ele => {
+                  if (ele.label) {
+                    ele.labelArray = ele.label
+                      .substr(0, ele.label.length - 1)
+                      .split("#");
+                  } else {
+                    ele.labelArray = [];
+                  }
+                });
+              }
+            }else{
+              that.loading = 0
+              this.$toast(res.errmsg)
+            }
+          });
+      } else {
+        this.$toast("请输入搜索内容");
+      }
+
+      //2
+      // if (that.historyList.length > 0) { // 有数据的话 判断
+      //         if (that.historyList.indexOf(val) !== -1) { // 有相同的，先删除 再添加
+      //         that.historyList.splice(that.historyList.indexOf(val), 1)
+      //         that.historyList.unshift(val)
+      //         } else { // 没有相同的 添加
+      //         that.historyList.unshift(val)
+      //         }
+      //     } else { // 没有数据 添加
+      //         that.historyList.unshift(val)
+      //     }
+      //     if (that.historyList.length > 6) { // 保留六个值
+      //         that.historyList.pop()
+      //     }
+      //     localStorage.setItem('searchWord', JSON.stringify(that.historyList));
+      //3
+    },
+    searchItem(item) {
+      let that = this;
+      that.value = item;
+      that.page = 1;
+      that.searchAll();
+    },
+    toDetail(id) {
+      this.$router.push({
+        path: "/customerDetail",
+        query: {
+          id: id
+        }
+      });
+    },
+    toGenjin(id, name) {
+      this.$router.push({
+        path: "/customerGenjin",
+        query: {
+          station_id: id,
+          customer_id: 0,
+          customerName: name,
+          cls: 1,
+          keyword: this.value
+        }
+      });
+    },
+    tel(id) {
+      this.isPhone = true;
+      this.stationId = id;
+    },
+    more(id, name) {
+      this.isMore = true;
+      this.stationName = id + '-' + name;
+    },
+    closeOverlay() {
+      this.isPhone = false;
+      this.isMore = false;
+      this.stationId = "";
+      this.stationName = "";
+    },
+    addRel(id) {
+      this.$router.push({
+        path: "/addGlCustomer",
+        query: {
+          id: id
+        }
+      });
+    },
+    edit(id) {
+      this.$router.push({
+        path: "/addCustomer",
+        query: {
+          id: id,
+          keyword: this.value
+        }
+      });
+    },
+    del(id) {
+      this.$api.stationDel({ station_id: id }).then(res => {
+        this.$toast(res.errmsg);
+        if (res.errno === 0) {
+          // this.$router.go(-1)
+          this.page = 1
+          this.searchItem(this.value)
+        }
+      });
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if (from.path == "/" || from.path == "/addCustomer" || from.path == "/customerGenjin") {
+      to.meta.isBack = false;
+      let keyword = from.query.keyword
+     
+      if(keyword != '' && keyword != undefined){
+        to.meta.keyword = keyword
+      }else{
+        to.meta.keyword = ''
+      }
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  activated() {
+    if (!this.$route.meta.isBack) {
+      let keyword = this.$route.meta.keyword;
+      if(keyword != ''){
+        document.documentElement.scrollTop = 0
+        this.value = this.$route.meta.keyword;
+        this.searchItem(this.value)
+      }else{
+        this.value = ''
+        this.page = 1
+        this.lists = [];
+      }
+    }
+    this.isPhone = false;
+    this.isMore = false;
+    this.stationId = "";
+    this.stationName = "";
+    this.$route.meta.isBack = false;
+  },
+};
+</script>
+<style lang="less">
+.search {
+  .top {
+    background: url("../images/msgBg.jpg") no-repeat;
+    width: calc(100% - 32px);
+    height: 50px;
+    background-size: 100% 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    img:first-of-type {
+      width: 10px;
+      height: 16px;
+      margin-right: 10px;
+    }
+    img:last-of-type {
+      width: 20px;
+      height: 20px;
+    }
+    input {
+      height: 35px;
+      border: none;
+      width: 95%;
+      border-bottom: 1px solid #ffffff;
+      color: #fff;
+      background: transparent;
+    }
+    input:-ms-input-placeholder {
+      color: #fff;
+    }
+    ::-webkit-input-placeholder {
+      color: #fff;
+    }
+  }
+
+  > p {
+    color: #aaa;
+    font-size: 14px;
+    padding: 10px 0 0 16px;
+  }
+
+  > ul {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    li {
+      padding: 5px 10px;
+      background: #eee;
+      color: #444;
+      margin-left: 16px;
+      margin-top: 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+  }
+
+  .content {
+    .detail {
+      margin-bottom: 10px;
+      background: #fff;
+      > div {
+        padding-left: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 50px;
+        border-bottom: 1px solid #eeeeee;
+        > img {
+          width: 15px;
+          height: 15px;
+        }
+        h4 {
+          margin: 0 10px;
+        }
+        > span {
+          font-size: 14px;
+          background: #ddefff;
+          color: #1c92ff;
+          border-radius: 20px;
+          padding: 3px 10px;
+        }
+      }
+      > ul:first-of-type {
+        padding: 10px 20px;
+        border-bottom: 1px solid #eeeeee;
+        li {
+          line-height: 30px;
+          color: #aaa;
+          font-size: 14px;
+          img {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+          }
+          .label-cont {
+            padding-left: 25px;
+            margin-top: -30px;
+          }
+          .label-tip {
+            border-radius: 10px;
+            margin-right: 5px;
+            padding: 0 5px;
+            display: inline-block;
+            line-height: 24px;
+            // border: 1px solid #eeeeee;
+            &:nth-of-type(1) {
+              border: 1px solid rgba(28, 146, 255, 1);
+              background: rgba(28, 146, 255, 0.1);
+            }
+            &:nth-of-type(2) {
+              background: rgba(255, 151, 28, 0.1);
+              border: 1px solid rgba(255, 151, 28, 1);
+            }
+            &:nth-of-type(3) {
+              background: rgba(28, 252, 255, 0.1);
+              border: 1px solid rgba(50, 209, 211, 1);
+            }
+            &:nth-of-type(4) {
+              background: rgba(229, 206, 13, 0.1);
+              border: 1px solid rgba(225, 193, 34, 1);
+            }
+            &:nth-of-type(5) {
+              background: rgba(28, 255, 172, 0.1);
+              border: 1px solid rgba(25, 226, 152, 1);
+            }
+          }
+        }
+      }
+      > ul:last-of-type {
+        display: flex;
+        justify-content: flex-start;
+        li {
+          width: 33%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 50px;
+          border-right: 1px solid #eeeeee;
+          img {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+          }
+        }
+      }
+    }
+    ul.customer {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      height: 84px;
+      li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-left: 20px;
+        img {
+          width: 20px;
+          height: 20px;
+          margin-bottom: 5px;
+        }
+      }
+    }
+  }
+
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+
+  .van-popup{
+        .van-action-sheet__header{
+            text-align: left;
+            padding-left: 20px;
+        }
+        ul{
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            height: 84px;
+            li{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                margin-left: 20px;
+                img{
+                    width: 20px;
+                    height: 20px;
+                    margin-bottom: 5px;
+                }
+            }
+        }
+
+        p{
+            border-bottom: 1px solid #eee;
+            height: 50px;
+            line-height: 50px;
+            padding-left: 20px;
+        }
+    }
+
+    .van-overlay{
+        .van-overlay{
+            display: none;
+        }
+    }
+}
+</style>

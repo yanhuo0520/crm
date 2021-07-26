@@ -1,0 +1,474 @@
+<template>
+  <div class="contact">
+    <van-nav-bar :left-text="leftText" left-arrow fixed @click-left="leftBack" />
+    <!-- <van-icon name="search" slot="right" @click="$router.push('/search')" />
+    </van-nav-bar>-->
+
+    <div class="searchCont">
+      <input type="text" placeholder="请输入联系人姓名/手机号" @click="searchAll" />
+      <img src="../../images/searchContact.png" alt @click="searchAll" />
+    </div>
+
+    <div v-if="userData != ''">
+      <van-index-bar :index-list="indexList" :sticky-offset-top="stickyOffsetTop">
+        <div v-for="(item, index) in userData" :key="index">
+          <van-index-anchor :index="index">{{index}}</van-index-anchor>
+          <div class="content" v-for="(item1, index1) in item" :key="index1">
+            <div class="left" @click="showDetail(item1.linker_id)">
+              <!-- <img src="../../images/avatar1.png" alt /> -->
+              <span>{{item1.name}}</span>
+              <!-- <img src="../../images/phone2.png" alt />
+              <span>{{item1.phone}}</span> -->
+            </div>
+            <div class="right">
+              <a :href="'tel:' + item1.phone">
+                <img src="../../images/tel.png" alt />
+              </a>
+              <a :href="'sms:'+ item1.phone">
+                <img src="../../images/message.png" alt />
+              </a>
+            </div>
+
+            <van-overlay :show="item1.linker_id == linkerId">
+              <van-popup v-model="isShow" class="detail">
+                <div class="top">
+                  <div v-if="item1.type==2" class="editCont" @click="editContact(item1.linker_id)">
+                    <img src="../../images/edit1.png" alt="" /> 编辑
+                  </div>
+                  <div class="left">
+                    <div class="nameBg">{{item1.name.substr(0, 1)}}</div>
+                    <!-- <img src="../../images/avatar1.png" alt /> -->
+                  </div>
+                  <div class="right">
+                    <p class="name">{{item1.name}}<span v-if="item1.position"> | {{item1.position}}</span></p>
+                    <p class="desc">{{item1.company}}</p>
+                    <ul v-if="item1.tag_name">
+                      <li v-for="(itemLabel, indexLabe) in item1.labelArray" :key="indexLabe" class="label-tip">{{itemLabel}}</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="bottomCont">
+                  <div class="contLi">
+                    <van-cell title="电话" :label="item1.phone" />
+                    <a :href="'tel:'+item1.phone">
+                      <img src="../../images/tel.png" alt />
+                    </a>
+                  </div>
+                  <div class="contLi" v-if="item1.email">
+                    <van-cell title="邮箱" :label="item1.email" />
+                    <img src="../../images/email.png" alt />
+                  </div>
+                  <div class="contLi" v-if="item1.address">
+                    <van-cell title="地址" :label="item1.totalAddress" />
+                    <img src="../../images/address.png" alt />
+                  </div>
+                  <div class="contLast" v-if="item1.note">
+                    <van-cell title="备注"></van-cell>
+                    <van-field
+                      :value="item1.note"
+                      rows="2"
+                      readonly
+                      autosize
+                      type="textarea"
+                      placeholder="请输入跟进内容"
+                    />
+                  </div>
+                  <div class="contLast" v-else>
+                    <van-cell title="备注"></van-cell>
+                    <van-field
+                      value="暂无"
+                      rows="2"
+                      readonly
+                      autosize
+                      type="textarea"
+                      placeholder="请输入跟进内容"
+                    />
+                  </div>
+                </div>
+                <img src="../../images/close.png" alt class="closeDetail" @click="closeOverlay" />
+              </van-popup>
+            </van-overlay>
+          </div>
+        </div>
+      </van-index-bar>
+    </div>
+
+    <div v-else-if="userData == '' && !loading" class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "contact",
+  data() {
+    return {
+      loading: 1,
+      leftText: "联系人",
+      linkerId: "",
+      isShow: false,
+      type: "",
+      stickyOffsetTop: 50,
+      indexList: [],
+      userData: []
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0
+  },
+  methods: {
+    leftBack(){
+      this.$router.push('/contact')
+    },
+    searchAll() {
+      this.$router.push({
+        path: "/contactSearch",
+        query: {
+          type: this.type
+        }
+      });
+    },
+    getList() {
+      let that = this;
+      this.$api.contactList({ type: that.type}).then(res => {
+        if (res.errno === 0) {
+          that.loading = 0
+          if (res.data) {
+            that.indexList = Object.keys(res.data);
+            that.userData = res.data;
+            for(let key in res.data){
+              res.data[key].forEach(ele => {
+                if(ele.tag_name){
+                  ele.labelArray = ele.tag_name.substr(0, ele.tag_name.length - 1).split("#");
+                }else{
+                  ele.labelArray = []
+                }
+
+              if(ele.address){
+                  if(ele.address.indexOf("#") == -1 && ele.address.indexOf("/") == -1){ // 不包含# /
+                    ele.totalAddress = ele.address
+                  }else if(ele.address.indexOf("#") == -1){ // 不包含#
+                    let addressArray = ele.address.substr(0, ele.address.length).split("/")
+                    ele.totalAddress = addressArray[0] + addressArray[1] + addressArray[2]
+                  }else if(ele.address.indexOf("#") != -1){
+                    let addressArray = ele.address.substr(0, ele.address.length).split("#")
+                    let addArr = addressArray[0].substr(0, addressArray[0].length).split("/")
+                    ele.totalAddress = addArr[0] + addArr[1] + addArr[2] + addressArray[1]
+                  }
+                }
+
+              });
+            }
+          }
+        }
+      });
+    },
+    showDetail(id) {
+      this.isShow = true;
+      this.linkerId = id;
+    },
+    editContact(id) {
+      this.$router.push({
+        path: '/contactAdd',
+        query:{
+          id: id
+        }
+      })
+    },
+    closeOverlay() {
+      this.isShow = false;
+      this.linkerId = "";
+    }
+  },
+  created() {
+    document.documentElement.scrollTop = 0;
+  },
+  beforeRouteEnter(to, from, next){
+    let type = to.query.type
+    to.meta.type = type
+    if (from.path == "/contact" || from.path == "/contactAdd" || from.path == "/contactSearch") {
+      to.meta.isBack = false;
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  activated() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    
+    this.type = this.$route.meta.type
+    if (this.type == 1) {
+      this.leftText = "内部联系人";
+    } else if (this.type == 3) {
+      this.leftText = "银行业务人员";
+    } else if (this.type == 2) {
+      this.leftText = "外部联系人";
+    }
+    if (!this.$route.meta.isBack) {  // 不缓存
+        document.documentElement.scrollTop = 0
+        this.loading = 1
+        this.indexList = []
+        this.userData = []
+        this.getList();
+    }
+    this.isShow = false;
+    this.linkerId = "";
+    this.$route.meta.isBack = false;
+  },
+};
+</script>
+<style lang="less">
+.contact {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    z-index: 2;
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .searchCont {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #aaaaaa;
+    }
+    ::-webkit-input-placeholder {
+      color: #aaaaaa;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 16px;
+      padding: 10px 15px;
+    }
+  }
+  .content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px 0 10px;
+    height: 50px;
+    background: #fff;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    .editCont{
+      position: absolute;
+      right: 0;
+      top: 20px;
+      background: #ffffff;
+      color: #1C92FF;
+      padding: 2px 6px 2px 10px;
+      border-top-left-radius: 15px;
+      border-bottom-left-radius: 15px;
+      img{
+        width: 15px;
+        vertical-align: text-top;
+      }
+    }
+    .left {
+      display: flex;
+      align-items: center;
+      width: 70%;
+      padding: 15px 0;
+      justify-content: left;
+      img {
+        width: 20px;
+        height: 20px;
+        padding-right: 8px;
+      }
+      img:last-of-type {
+        width: 10px;
+        height: 15px;
+        padding: 0 8px;
+      }
+      // span:last-of-type {
+      //   color: #aaa;
+      // }
+    }
+    .right {
+      a {
+        display: inline-block;
+      }
+      img {
+        width: 30px;
+        height: 30px;
+        padding: 10px 0;
+        margin-left: 10px;
+      }
+    }
+  }
+  .van-index-bar__index{
+    line-height: 18px;
+    color: #999999;
+  }
+  .van-index-bar__index--active,
+  .van-index-anchor,
+  .van-index-anchor--sticky{
+    color: #1C92FF;
+  }
+  .van-index-bar__sidebar{
+    top: calc(50% + 40px)
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+  }
+  .detail {
+    width: 80%;
+    background: url(../../images/contactBg.png) no-repeat center top;
+    background-size: 100% auto;
+    border-radius: 10px;
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      margin: 30px 0 10px 0;
+      .left {
+        display: flex;
+        justify-content: left;
+        width: auto;
+        .nameBg{
+          width: 60px;
+          height: 60px;
+          margin: 0 8px;
+          line-height: 60px;
+          color: #ffffff;
+          border-radius: 50%;
+          font-size: 26px;
+          text-align: center;
+          background:rgba(255,255,255,0.3);
+          border: 2px solid #ffffff;
+        }
+        img {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+        }
+      }
+      .name {
+        font-size: 16px;
+        span {
+          font-size: 13px;
+        }
+      }
+      .desc {
+        margin-top: 5px;
+        font-size: 13px;
+      }
+      .label-tip {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid #ffffff;
+        display: inline-block;
+        border-radius: 15px;
+        font-size: 12px;
+        padding: 1px 5px;
+        margin-top: 5px;
+        margin-right: 5px;
+      }
+      .right {
+        width: calc(100% - 60px);
+        padding-right: 10px;
+      }
+    }
+    .bottomCont {
+      .contLi {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #ffffff;
+        img {
+          width: 36px;
+          margin-right: 10px;
+        }
+        .van-cell {
+          padding: 5px 15px;
+          width: calc(100% - 50px);
+          span {
+            color: #aaaaaa;
+            font-size: 13px;
+          }
+          .van-cell__label {
+            margin-top: 0;
+            font-size: 15px;
+            color: #444444;
+          }
+        }
+      }
+      .contLast {
+        .van-cell {
+          padding: 5px 15px;
+          &:first-child {
+            padding-bottom: 0;
+            &::after {
+              border-bottom: none;
+            }
+            span {
+              color: #aaaaaa;
+              font-size: 13px;
+            }
+          }
+          &:last-child {
+            padding-top: 0;
+            font-size: 15px;
+            color: #444444;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+          }
+        }
+      }
+    }
+  }
+
+  
+    .van-overlay{
+      z-index: 999;
+        .van-overlay{
+            display: none;
+        }
+    }
+  .closeDetail {
+    width: 30px;
+    display: flex;
+    margin: 30px auto 0 auto;
+  }
+  .van-index-anchor{
+    font-weight: bold;
+  }
+  .van-loading{
+        padding: 10px 0;
+        text-align: center;
+    }
+}
+</style>

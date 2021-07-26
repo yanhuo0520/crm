@@ -1,0 +1,372 @@
+<template>
+  <div class="carAdd">
+    <van-nav-bar left-text="添加今日里程照片" left-arrow fixed @click-left="leftBack" />
+    <div class="marBottom">
+      <van-field placeholder="请输入用车前公里数" type="number" label="用车前公里数" :left-icon="require('../../images/num1.png')"
+        input-align="right" v-model="beforeNum" />
+      <van-cell title="车辆公里数照片" icon="http://sc.xfd365.com/crmImages/pic.png"></van-cell>
+
+      <div class="upIMgCont" v-if="img1">
+        <img :src="img1" class="upIMg" @click.stop="imgShow(img1)" />
+        <img src="../../images/close.png" class="closeBtn" @click.stop="img1=''" />
+      </div>
+
+      <div class="uploadContIn" v-if="!img1" @click="upId=1,requestCamera()">
+        <img src="../../images/jia.png" />
+        <p>车辆公里数照片</p>
+      </div>
+    </div>
+
+    <div class="marBottom">
+      <van-field placeholder="请输入用车后公里数" type="number" label="用车后公里数" :left-icon="require('../../images/num1.png')"
+        input-align="right" v-model="AfterNum" />
+      <van-cell title="车辆公里数照片" icon="http://sc.xfd365.com/crmImages/pic.png"></van-cell>
+      <div class="upIMgCont" v-if="img2">
+        <img :src="img2" class="upIMg" @click.stop="imgShow(img2)" />
+        <img src="../../images/close.png" class="closeBtn" @click.stop="img2=''" />
+      </div>
+      <div class="uploadContIn" v-if="!img2" @click="upId=2,requestCamera()">
+        <img src="../../images/jia.png" />
+        <p>车辆公里数照片</p>
+      </div>
+    </div>
+
+    <van-button type="info" block class="sendBtn" @click="savePic()" v-if="hidshowFooter">
+      立即提交
+    </van-button>
+
+  </div>
+</template>
+<script>
+  import Exif from "exif-js";
+  import {
+    ImagePreview
+  } from 'vant';
+  export default {
+    name: "carAdd",
+    data() {
+      return {
+        role: localStorage.getItem("role"), // 1为员工，2管理员
+        userName: localStorage.getItem('userName'),
+        showUpload: false,
+        upId: '',
+        travel_id: '',
+        beforeNum: '',
+        AfterNum: '',
+        img1: '',
+        img2: '',
+        imagePreviewCover: '',
+
+        docmHeight: document.documentElement.clientHeight, //默认屏幕高度
+        showHeight: "0", //实时屏幕高度
+        hidshowFooter: true, //显示或者隐藏footer,
+      };
+    },
+    mounted() {
+      window.leftBack = this.leftBack; // Android原生返回按钮执行leftBack()方法
+      window.savePic64 = this.savePic64
+      window.requestCamera = this.requestCamera
+      window.onGetPic = this.onGetPic
+      window.onresize = () => { // 实时屏幕高度
+        this.showHeight = document.body.clientHeight;
+      };
+      let travel_id = this.$route.query.travel_id
+      if (travel_id) { // 编辑查询
+        this.$api.travel_expense_detail({
+          "travel_id": travel_id
+        }).then(res => {
+          if (res.errno === 0) {
+            this.travel_id = res.data.travel_id
+            this.beforeNum = res.data.start_km
+            this.img1 = res.data.pic1;
+            this.AfterNum = res.data.end_km
+            this.img2 = res.data.pic2
+          }
+        });
+      } else { // 查询当天
+        this.$api.travel_expense_search().then(res => {
+          if (res.errno === 0) {
+            this.travel_id = res.data.travel_id
+            this.beforeNum = res.data.start_km
+            this.img1 = res.data.pic1;
+            this.AfterNum = res.data.end_km
+            this.img2 = res.data.pic2
+          }
+        });
+      }
+
+    },
+    methods: {
+      leftBack() {
+        if (this.imagePreviewCover) {
+          this.imagePreviewCover.close();
+          this.imagePreviewCover = ''
+        }else{
+          this.$router.go(-1)
+        }
+        
+      },
+      // 调用安卓方法拍照
+      requestCamera() {
+        let kmIn = ''
+        if(this.upId == 1){
+          kmIn = this.beforeNum
+        }else if(this.upId == 2){
+          kmIn = this.AfterNum
+        }
+
+        let curDate = this.dateFormat('yyyy-MM-dd hh:mm:ss')
+        android.requestPic(localStorage.getItem('userName') + ' ' +  curDate + ' 输入公里数:' + kmIn, '#ffffff')
+      },
+      // 获取照片
+      onGetPic(b) {
+        let curSignUrl = 'data:image/jpeg;base64,' + b
+        let blod = this.base64ToBlob(curSignUrl)
+        let file = this.blobToFile(blod, 'sign' + new Date().getTime())
+        this.upLoadImg(file)
+      },
+      // base64转二进制
+      base64ToBlob(base64) {
+        let parts = base64.split(';base64,');
+        let contentType = parts[0].split(':')[1];
+        let raw = window.atob(parts[1]);
+        let rawLength = raw.length;
+        let uInt8Array = new Uint8Array(rawLength);
+
+        for (let i = 0; i < rawLength; ++i) {
+          uInt8Array[i] = raw.charCodeAt(i);
+        }
+        return new Blob([uInt8Array], {
+          type: contentType
+        });
+      },
+      // 二进制转file
+      blobToFile(blob, fileName) {
+        let file = blob
+        file.lastModifiedDate = new Date();
+        file.name = fileName;
+        return file;
+      },
+      //接口上传图片
+      upLoadImg(file) {
+        this.$toast.loading({
+          message: '正在上传照片...',
+          forbidClick: true,
+          duration: 0,
+        });
+        let formdata = new FormData();
+        formdata.append("file", file);
+        formdata.append("token", localStorage.getItem('token'));
+
+        const instance = this.$axios.create({
+          //withCredentials:true
+        });
+        instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+          this.$toast.clear()
+          if (res.data.errno === 0) {
+            if (this.upId == 1) {
+              this.img1 = res.data.data.url
+            } else if (this.upId == 2) {
+              this.img2 = res.data.data.url
+            }
+
+          } else {
+            this.$toast(res.errmsg);
+          }
+        }, err => {
+          console.log(err)
+
+        });
+
+      },
+      // 查看完整图片
+      imgShow(url) {
+        let that = this
+        this.imagePreviewCover = ImagePreview({
+          images: [url],
+          asyncClose: true,
+          closeable: true,
+        });
+        this.$nextTick(() => {
+          document.querySelector('.van-image-preview__close-icon--top-right').addEventListener('click', function(
+            e) {
+            e.stopPropagation(); //取消事件冒泡
+            that.imagePreviewCover.close();
+            that.imagePreviewCover = ''
+          })
+        })
+      },
+      savePic() {
+        if (this.beforeNum.trim() <= 0) {
+          this.$toast("请输入用车前公里数！")
+          return
+        }
+        if (!this.img1) {
+          this.$toast("请上传用车前公里照片！")
+          return
+        }
+        if (this.AfterNum.trim() <= 0) {
+          this.$toast("请输入用车后公里数！")
+          return
+        }
+        if (!this.img2) {
+          this.$toast("请上传用车后公里照片！")
+          return
+        }
+        var data = {};
+        data.is_car = 1
+        data.start_km = this.beforeNum
+        data.pic1 = this.img1;
+        data.end_km = this.AfterNum
+        data.pic2 = this.img2;
+        data.travel_id = this.travel_id;
+
+        this.$api.travel_expense_save(data).then(res => {
+          if (res.errno === 0) {
+            if(this.travel_id){
+              this.$toast("修改成功");
+            }else{
+              this.$toast("添加成功");
+            }
+            setTimeout(() => {
+              this.$router.go(-1)
+            }, 1000);
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+
+      },
+      /**
+       * 日期格式转换
+       * @param fmt 要处理成的日期格式 例: 'yyyy-MM-dd hh:mm:ss'
+       * @param date 要处理的日期，需Date类型
+       */
+      dateFormat(fmt, date, hType) {
+        date = date ? date : new Date();
+        let o = {
+          "M+": date.getMonth() + 1, //月份
+          "d+": date.getDate(), //日
+          "h+": hType ? (date.getHours() % 12 === 0 ? 12 : date.getHours() % 12) : date.getHours(), //小时
+          "H+": date.getHours(), //小时
+          "m+": date.getMinutes(), //分
+          "s+": date.getSeconds(), //秒
+          "q+": Math.floor((date.getMonth() + 3) / 3), //季度
+          "S": date.getMilliseconds() //毫秒
+        };
+        let week = {
+          "0": "/u65e5",
+          "1": "/u4e00",
+          "2": "/u4e8c",
+          "3": "/u4e09",
+          "4": "/u56db",
+          "5": "/u4e94",
+          "6": "/u516d"
+        };
+        if (/(y+)/.test(fmt)) {
+          fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
+        }
+        if (/(E+)/.test(fmt)) {
+          fmt = fmt.replace(RegExp.$1, ((RegExp.$1.length > 1) ? (RegExp.$1.length > 2 ? "/u661f/u671f" : "/u5468") :
+            "") + week[date.getDay() + ""]);
+        }
+        for (let k in o) {
+          if (new RegExp("(" + k + ")").test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k])
+              .length)));
+          }
+        }
+        return fmt;
+      }
+    },
+    watch: {
+      showHeight: function() {
+        if (this.docmHeight > this.showHeight) {
+          this.hidshowFooter = false;
+        } else {
+          this.hidshowFooter = true;
+        }
+      }
+    }
+  };
+</script>
+<style lang="less">
+  .carAdd {
+    min-height: calc(100% - 50px);
+    padding-top: 50px;
+    background: #f5f5f5;
+
+    .van-nav-bar {
+      background: url(../../images/msgBg.jpg) no-repeat;
+      width: 100%;
+      height: 50px;
+      line-height: 50px;
+      background-size: 100% 50px;
+
+      .van-nav-bar__text {
+        color: #fff;
+      }
+
+      .van-icon {
+        color: #fff;
+      }
+    }
+
+    .van-field__label {
+      color: #323233;
+    }
+
+    .marBottom {
+      margin-bottom: 10px;
+      background: #fff;
+    }
+
+    .upIMgCont {
+      position: relative;
+      width: 100px;
+      height: 90px;
+
+      .closeBtn {
+        position: absolute;
+        right: -15px;
+        top: 5px;
+        z-index: 11;
+        width: 16px;
+        height: 16px;
+        background: #000000;
+        border-radius: 50%;
+      }
+    }
+
+    .upIMg {
+      margin: 10px;
+      width: 100px;
+      height: 70px;
+    }
+
+    .uploadContIn {
+      margin: 10px;
+      display: inline-table;
+      background: #F0F6FC;
+      width: 100px;
+      height: 70px;
+      text-align: center;
+      color: #9AA8B6;
+
+      img {
+        width: 15px;
+        height: 15px;
+        margin: 16px 0 5px 0;
+      }
+    }
+
+    .sendBtn {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      font-size: 15px;
+      background: #1c92ff;
+      border: 1px solid #1c92ff;
+    }
+  }
+</style>

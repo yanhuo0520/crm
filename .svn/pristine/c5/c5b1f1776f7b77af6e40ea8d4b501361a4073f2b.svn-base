@@ -1,0 +1,358 @@
+<template>
+    <div class="ccbCustomer">
+        <van-nav-bar
+            left-text="我的客户"
+            left-arrow
+            @click-left="backLeft"
+        />
+        <img class="topSearch" src="../../images/search.png" alt="" @click="searchAll">
+        <div class="content" v-if="lists!=''">
+            <div class="detail" v-for="(item,index) in lists" :key="index">
+                <div @click="toDetail(item.customer_id)">
+                    <img src="../../images/gongsi.png" alt="">
+                    <h4>{{item.serverName}}</h4>
+                    <!-- <span v-if="item.status==1">正在跟进</span> -->
+                </div>
+                <ul @click="toDetail(item.customer_id)">
+                    <li>
+                        <img src="../../images/customerName.png" alt="">
+                        <span>{{item.customerName}}</span>
+                    </li>
+                    <li>
+                        <img src="../../images/secondBank.png" alt="">
+                        <span>{{item.secondBank}}</span>
+                    </li>
+                    <li v-if="item.type!='' && item.type != undefined">
+                        <img src="../../images/customerStatus.png" alt="">
+                        <span v-if="item.type==1">到访</span>
+                        <span v-else-if="item.type==2">电话</span>
+                        <span v-else-if="item.type==3">微信</span>
+                        <span v-else-if="item.type==4">短信</span>
+                        <span v-else-if="item.type==5">其他</span>
+                    </li>
+                    <li v-if="item.follow_time!='' && item.follow_time != undefined">
+                        <img src="../../images/time.png" alt="">
+                        <span>{{item.follow_time}}</span>
+                    </li>
+                </ul>
+                <ul>
+                     <li @click="toDetail(item.customer_id)">
+                        <img src="../../images/detail.png" alt="">
+                        <span>查看详情</span>
+                    </li>
+                    <li @click="tel(item.customer_id)">
+                        <img src="../../images/customerPhone.png" alt="">
+                        <span>电话</span>
+                    </li>
+                    <li @click="toGenjin(item.customer_id, item.customerName)">
+                        <img src="../../images/customerGenjin.png" alt="">
+                        <span>跟进</span>
+                    </li>
+                </ul>
+
+                <van-overlay :show="item.customer_id==customerId" @click="closeOverlay" style="height:100vh">
+                    <van-action-sheet v-model="isPhone" title="拨打电话" :round="isRound" @click.stop @cancel="closeOverlay">
+                        <a :href="'tel:'+item.phones" style="color:#000;margin:20px;display:block;">{{item.phones}}</a>
+                    </van-action-sheet>
+                </van-overlay>
+
+            </div>
+        </div>
+        <div v-else-if="lists=='' && !loading" class="zanwu">
+            <img src="../../images/zanwu.png" alt="">
+            <span>暂无内容</span>
+        </div>
+        <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+    </div>
+</template>
+<script>
+export default {
+  name: "ccbCustomer",
+  data () {
+    return {
+        loading: 1,
+        isRound: false,
+        isPhone: false,
+        lists: [],
+        customerId: '',
+        page: 1,
+        pageSize: 10,
+        totalPage: 1
+    };
+  },
+  mounted(){
+      console.log("mounted")
+      this.getList(); 
+      document.documentElement.scrollTop = 0
+      window.addEventListener('scroll', this.scrollBottom)
+  },
+  methods:{
+    scrollBottom(e){
+        let that = this;
+        var scrollTop = e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+        let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+        let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight); /*文档完整的高度*/
+        if ((scrollHeight - clientHeight - scrollTop) <= 0 && that.page < that.totalPage) {
+            that.page +=1
+            that.loading = 1
+            that.getList();
+        }
+    },
+    getList(){
+        var that = this;
+        this.$api.ccbCustomerLists({page: that.page, size: that.pageSize}).then(res=>{
+          that.totalPage = res.total_page
+          if(res.errno === 0){
+              if(that.page == 1){
+                  that.loading = 0
+                  that.lists = res.data;
+              }else if(res.data.length > 0){
+                  that.lists.push(...res.data)
+                  if(res.data.length <that.pageSize || (res.data.length == that.pageSize && that.page == that.totalPage)){
+                      that.loading = 0
+                  }
+              }else if(that.page == that.totalPage){
+                  that.loading = 0
+              }
+          }else{
+            that.loading = 0
+            this.$toast(res.errmsg)
+          }
+      })
+
+    },
+    searchAll(){
+        this.$router.push({
+            path: '/ccbSearch'
+        })
+    },
+    backLeft(){
+        this.$router.go(-1)
+        // this.$router.push({
+        //     path: '/'
+        // })
+    },
+    toDetail(id){
+        this.$router.push({
+            path: '/ccbCustomerDetail',
+            query: {
+                id: id
+            }
+        })
+    },
+    tel(id){
+        this.isPhone = true
+        this.customerId = id
+    },
+    closeOverlay(){
+        this.isPhone = false
+        this.customerId = ''
+    },
+    toGenjin(id, name){
+        this.$router.push({
+            path: '/customerGenjin',
+            query:{
+                customer_id: id,
+                station_id: 0,
+                customerName: name,
+                cls: 2
+            }
+        })
+    },
+  },
+  beforeRouteEnter(to, from, next){
+    if (from.path == "/" || from.path == "/customerGenjin" || from.path == "/ccbSearch") {
+      to.meta.isBack = false;
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  activated() {
+    console.log("activated")
+    if (!this.$route.meta.isBack) {  // 不缓存
+        document.documentElement.scrollTop = 0
+        this.loading = 1
+        this.page = 1;
+        this.lists = [];
+        this.getList();
+    }
+    this.isPhone = false;
+    this.customerId = "";
+    this.$route.meta.isBack = false;
+  },
+}
+</script>
+<style lang="less">
+.ccbCustomer{
+    min-height: 100%;
+    background: #f5f5f5;
+    .van-nav-bar{
+        background: url(../../images/msgBg.jpg) no-repeat;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-size: 100% 50px;
+        .van-nav-bar__text{
+            color: #fff;
+        }
+        .van-icon{
+            color: #fff;
+        }
+    }
+    .topSearch{
+        position: absolute;
+        right: 0;
+        top: 0;
+        z-index: 1;
+        width: 18px;
+        padding: 16px;
+    }
+    .content{
+        .detail{
+            margin-bottom: 10px;
+            background: #fff;
+            >div{
+                padding-left: 20px;
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                height: 50px;
+                border-bottom: 1px solid #eeeeee;
+                >img{
+                    width: 15px;
+                    height: 15px;
+                }
+                h4{
+                    margin: 0 10px;
+                }
+                >span{
+                    font-size: 14px;
+                    background: #ddefff;
+                    color: #1c92ff;
+                    border-radius: 20px;
+                    padding: 3px 10px
+                }
+            }
+            >ul:first-of-type{
+                padding: 10px 20px;
+                border-bottom: 1px solid #eeeeee;
+                li{
+                    line-height: 30px;
+                    color: #aaa;
+                    font-size: 14px;
+                    img{
+                        width: 15px;
+                        height: 15px;
+                        margin-right: 5px;
+                        vertical-align: middle;
+                    }
+                    .label-cont{
+                        padding-left: 25px;
+                        margin-top: -30px;
+                    }
+                    .label-tip{
+                        border-radius: 10px;
+                        margin-right: 5px;
+                        padding: 0 5px;
+                        display: inline-block;
+                        line-height: 24px;
+                        // border: 1px solid #eeeeee;
+                        &:nth-of-type(1){
+                            border:1px solid rgba(28, 146, 255, 1);
+                            background:rgba(28,146,255,0.1);
+                        }
+                        &:nth-of-type(2){
+                            background:rgba(255,151,28,0.1);
+                            border:1px solid rgba(255, 151, 28, 1);
+                        }
+                        &:nth-of-type(3){
+                            background:rgba(28,252,255,0.1);
+                            border:1px solid rgba(50, 209, 211, 1);
+                        }
+                        &:nth-of-type(4){
+                            background:rgba(229,206,13,0.1);
+                            border:1px solid rgba(225, 193, 34, 1);  
+                        }
+                        &:nth-of-type(5){
+                            background:rgba(28,255,172,0.1);
+                            border:1px solid rgba(25, 226, 152, 1);        
+                        }
+                    }
+                }
+            }
+            >ul:last-of-type{
+                display: flex;
+                justify-content: flex-start;
+                li{
+                    width: 50%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 50px;
+                    border-right: 1px solid #eeeeee;
+                    img{
+                        width: 20px;
+                        height: 20px;
+                        margin-right: 6px;
+                    }
+                }
+            }
+        }
+    }
+    .van-loading{
+        padding: 10px 0;
+        text-align: center;
+    }
+    .zanwu{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding-top: 10%;
+        img{
+            width: 80%;
+        }
+    }
+    .van-popup{
+        .van-action-sheet__header{
+            text-align: left;
+            padding-left: 20px;
+        }
+        ul{
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            height: 84px;
+            li{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                margin-left: 20px;
+                img{
+                    width: 20px;
+                    height: 20px;
+                    margin-bottom: 5px;
+                }
+            }
+        }
+
+        p{
+            border-bottom: 1px solid #eee;
+            height: 50px;
+            line-height: 50px;
+            padding-left: 20px;
+        }
+    }
+
+    .van-overlay{
+        .van-overlay{
+            display: none;
+        }
+    }
+
+}
+</style>

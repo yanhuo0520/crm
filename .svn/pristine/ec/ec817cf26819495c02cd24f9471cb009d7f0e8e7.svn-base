@@ -1,0 +1,187 @@
+<template>
+  <div class="tagIndexList">
+    <van-nav-bar
+      left-arrow
+      :left-text="leftText"
+      right-text="新增标签"
+      fixed
+      @click-left="leftBack"
+      @click-right="addTag"
+    />
+    
+    <p class="title">个人标签</p>
+    <div class="content" v-if="personList != ''">
+      <van-swipe-cell
+        v-for="(item, index) in personList"
+        :key="index"
+        :name="item.customer_tag_id"
+        :before-close="beforeClose"
+      >
+        <van-cell :title="item.tag_name + '('+item.cou+')'" is-link @click="tagCustomerLists(item.customer_tag_id, item.tag_name)" />
+        <template #right>
+          <van-button square type="danger" text="删除" />
+        </template>
+      </van-swipe-cell>
+    </div>
+    <div class="zanwu" v-else>暂无个人标签</div>
+    <p class="title">企业标签</p>
+    <ul v-if="companyList != ''">
+      <li
+        v-for="(item, index) in companyList"
+        :key="index"
+        @click="tagComList(item.customer_tag_id, item.tag_name)"
+      >{{item.tag_name}}</li>
+    </ul>
+    <div class="zanwu" v-else>暂无企业标签</div>
+  </div>
+</template>
+<script>
+export default {
+  name: "tagIndexList",
+  data() {
+    return {
+      leftText: "标签",
+      customer_type: "",
+      personList: [],
+      companyList: [],
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    var customer_type = this.$route.query.customer_type;
+    if(customer_type == 0){
+      this.leftText = "我的标签"
+    }
+    this.customer_type = customer_type; // 1 其他新增客户  2 建行客户   0 全部
+    this.tagList();
+  },
+  methods: {
+    leftBack(){ // 返回按钮
+    // 判断从首页进入还是从个人中心进入
+      let tagIndexFrom = localStorage.getItem("tagIndexFrom")
+      let path = '';
+      if(tagIndexFrom == "index"){
+        path = "/"
+      }else{
+        path = "/ucenter"
+      }
+      this.$router.push({
+        path: path
+      });
+      localStorage.removeItem("tagIndexFrom")
+    },
+    addTag() { // 添加标签
+      this.$router.push({
+        path: "/tagEdit",
+        query: {
+          customer_type: this.customer_type
+        }
+      });
+    },
+    tagCustomerLists(customer_tag_id, tag_name) { // 点击个人标签
+      this.$router.push({
+        path: "/tagEdit",
+        query: {
+          customer_type: this.customer_type,
+          tag_id: customer_tag_id,
+          tag: tag_name,
+          tagOld: tag_name
+        }
+      });
+    },
+    tagComList(customer_tag_id, tag_name) {  // 点击企业标签
+      this.$router.push({
+        path: "/tagList",
+        query: {
+          customer_type: this.customer_type,
+          tag_id: customer_tag_id,
+          tag: tag_name
+        }
+      });
+    },
+    beforeClose({name, position, instance}) { // 侧滑删除个人标签
+      switch (position) {
+        case 'outside':
+          instance.close();
+          break;
+        case 'right':
+          // console.log("删除" + name)
+          this.$api.tagDelete({customer_tag_id: name}).then(res=> {
+            this.$toast(res.errmsg)
+            if (res.errno === 0) {
+              this.tagList()
+            }
+          })
+
+          instance.close();
+          break;
+      }
+    },
+    tagList(){ // 获取标签列表
+      let that = this;
+      this.$api.tagList({type: that.customer_type}).then(res=>{
+        if(res.errno === 0){
+          if(res.data){
+            that.personList = []
+            that.companyList = []
+            res.data.forEach(ele => {
+              if(ele.type == 1){ // 1个人标签  2企业标签
+                that.personList.push(ele)
+              }else{
+                that.companyList.push(ele)
+              }
+            });
+          }
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    }
+  }
+};
+</script>
+<style lang="less">
+.tagIndexList {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__title,
+    .van-nav-bar__text,
+    .van-icon{
+      color: #fff;
+    }
+    .van-nav-bar__title{
+      font-size: 14px;
+    }
+  }
+  p.title {
+    padding: 0 15px;
+    font-size: 14px;
+    line-height: 32px;
+    &:last-of-type {
+      margin-top: 20px;
+    }
+  }
+  ul {
+    padding: 0 15px;
+    li {
+      font-size: 14px;
+      display: inline-block;
+      padding: 5px 10px;
+      background: #ffffff;
+      border-radius: 15px;
+      margin: 5px 10px 5px 0;
+    }
+  }
+  .zanwu {
+    padding: 0 15px;
+    color: #666666;
+  }
+}
+</style>

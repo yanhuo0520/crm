@@ -1,0 +1,266 @@
+<template>
+  <div class="siteStatise">
+    <van-nav-bar
+      left-text="站点统计"
+      right-text="添加"
+      left-arrow
+      fixed
+      @click-left="$router.go(-1)"
+      @click-right="onClickRight"
+    />
+    <div class="search">
+      <input type="text" readonly placeholder="请输入姓名或手机号" @click="searchAll" />
+      <img src="../../images/searchContact.png" alt @click="searchAll" />
+    </div>
+
+    <div class="content" v-if="lists!=''">
+      <div class="detail" v-for="(item, index) in lists" :key="index">
+        <div @click="toDetail(item.site_id)">
+          <h4>{{item.site_name}} | {{item.sign_phone}}</h4>
+        </div>
+        <ul @click="toDetail(item.site_id)">
+          <li v-if="item.business">
+            <img src="http://sc.xfd365.com/crmImages/busentity.png" alt />
+            <span>{{item.business}}</span>
+          </li>
+          <li v-if="item.business_address">
+            <img src="../../images/dingwei.png" alt />
+            <span>{{item.business_address}}</span>
+          </li>
+        </ul>
+        <ul>
+          <li @click="toDetail(item.site_id)">
+            <img src="../../images/detail.png" alt />
+            <span>查看详情</span>
+          </li>
+          <li @click="toEdit(item.site_id)">
+            <img src="../../images/customerEdit.png" alt />
+            <span>编辑客户</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div v-else-if="lists=='' && !loading" class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "siteStatise",
+  data() {
+    return {
+      loading: 1,
+      lists: [],
+      page: 1,
+      pageSize: 10,
+      totalPage: 1
+    };
+  },
+  mounted() {
+    console.log("mounted")
+    this.getList();
+    document.documentElement.scrollTop = 0;
+    window.addEventListener("scroll", this.scrollBottom);
+  },
+  methods: {
+    scrollBottom(e){
+        let that = this;
+        var scrollTop = e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+        let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+        let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight); /*文档完整的高度*/
+        if ((scrollHeight - clientHeight - scrollTop) <= 0 && that.page < that.totalPage) {
+            that.page +=1
+            that.loading = 1
+            that.getList();
+        }
+    },
+    getList(){
+        var that = this;
+        this.$api.siteStatiseList({page: that.page, size: that.pageSize}).then(res=>{
+          that.totalPage = res.total_page
+          if(res.errno === 0){
+              if(that.page == 1){
+                  that.loading = 0
+                  that.lists = res.data;
+              }else if(res.data.length > 0){
+                  that.lists.push(...res.data)
+                  if(res.data.length <that.pageSize || (res.data.length == that.pageSize && that.page == that.totalPage)){
+                      that.loading = 0
+                  }
+              }else if(that.page == that.totalPage){
+                  that.loading = 0
+              }
+          }else{
+            that.loading = 0
+            this.$toast(res.errmsg)
+          }
+      })
+
+    },
+    searchAll() {
+      this.$router.push({
+        path: "/siteStatiseSearch"
+      })
+    },
+    onClickRight() {
+      this.$router.push({
+        path: "/siteStatiseAdd"
+      });
+    },
+    toDetail(id) {
+      this.$router.push({
+        path: "/siteStatiseDetail",
+        query: {
+          id: id
+        }
+      });
+    },
+    toEdit(id) {
+      this.$router.push({
+        path: "/siteStatiseAdd",
+        query: {
+          id: id
+        }
+      });
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if (from.path == "/" || from.path == "/siteStatiseAdd" || from.path == "/siteStatiseSearch") {
+      to.meta.isBack = false;
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  activated(){
+    console.log("activated")
+    if (!this.$route.meta.isBack) {  // 不缓存
+      console.log("不缓存")
+        document.documentElement.scrollTop = 0
+        this.loading = 1
+        this.page = 1;
+        this.lists = [];
+        this.getList();
+    }
+    this.$route.meta.isBack = false;
+  }
+};
+</script>
+<style lang="less">
+.siteStatise {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .search {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #AAAAAA;
+    }
+    ::-webkit-input-placeholder {
+      color: #AAAAAA;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 16px;
+      padding: 10px 15px;
+    }
+  }
+  .content {
+    .detail {
+      margin-bottom: 10px;
+      background: #fff;
+      > div {
+        padding-left: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 50px;
+        border-bottom: 1px solid #eeeeee;
+      }
+      > ul:first-of-type {
+        border-bottom: 1px solid #eeeeee;
+        li {
+          padding: 3px 20px;
+          line-height: 20px;
+          color: #aaa;
+          font-size: 14px;
+          display: flex;
+          &:first-child{
+            padding-top: 10px;
+          }
+          &:last-child{
+            padding-bottom: 10px;
+          }
+          img {
+            width: 15px;
+            height: 15px;
+            margin-top: 2px;
+            margin-right: 5px;
+          }
+        }
+      }
+      > ul:last-of-type {
+        display: flex;
+        justify-content: flex-start;
+        li {
+          width: 50%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 50px;
+          border-right: 1px solid #eeeeee;
+          img {
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+  }
+}
+</style>

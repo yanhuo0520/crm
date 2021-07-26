@@ -1,0 +1,458 @@
+<template>
+    <div class="index">
+        <div class="top">
+            <img src="../images/logo.png" alt="">
+            <div>
+              <img src="../images/search.png" alt="" @click="$router.push('/ccbSearch')">
+              <!-- <img src="../images/search.png" alt="" @click="$router.push('/search')"> -->
+            </div>
+        </div>
+        <p class="leaderWord">明确目标是成功的开始!</p>
+        <p class="countdown">距本月结束<span>{{day}}</span>天<span>{{hour}}</span>时<span>{{min}}</span>分</p>
+        
+        <ul class="module">
+          <li @click="$router.push('/work')">
+                <img src="../images/inBaifang.png" alt="">
+                <span>考勤签到</span>
+            </li>
+            <li @click="$router.push('/genjinSel')">
+                <img src="../images/ingenjin.png" alt="">
+                <span>写跟进</span>
+            </li>
+            <li @click="$router.push('/dailyAdd')">
+            <!-- <li @click="uncultivated"> -->
+                <img src="../images/inribao.png" alt="">
+                <span>写日报</span>
+            </li>
+            <li @click="$router.push('/weeklyAdd')">
+            <!-- <li @click="uncultivated"> -->
+                <img src="../images/inzhoubao.png" alt="">
+                <span>写周报</span>
+            </li>
+        </ul>
+        <ul class="mainModule">
+            <li @click="$router.push('/ccbCustomer')">
+                <img src="../images/inmykehu.png" alt="">
+                <span>我的客户</span>
+            </li>
+            <!-- <li @click="addCustomer">
+                <img src="../images/inaddkehu.png" alt="">
+                <span>新增客户</span>
+            </li> -->
+            <li @click="goTagIndex">
+                <img src="http://sc.xfd365.com/crmImages/tig.png" alt="">
+                <!-- <img src="../images/inzhandian.png" alt=""> -->
+                <span>标签管理</span>
+            </li>
+            <!-- <li @click="$router.push('/siteStatise')">
+                <img src="../images/inzhandian.png" alt="">
+                <span>站点统计</span>
+            </li> -->
+            <li @click="$router.push('/genjinRecord')">
+                <img src="../images/ingenjinlist.png" alt="">
+                <span>跟进记录</span>
+            </li>
+            <li @click="$router.push('/meeting')">
+                <img src="../images/inhuiyi.png" alt="">
+                <span>会议系统</span>
+            </li>
+            <!-- <li @click="$router.push('/customer')">
+                <img src="../images/inkehugonghai.png" alt="">
+                <span>客户列表</span>
+            </li> -->
+            <li @click="$router.push('/contact')">
+                <img src="../images/inlianxiren.png" alt="">
+                <span>联系人</span>
+            </li>
+        </ul>
+        <!-- <p class="tipTitle">目标看榜</p>
+        <ul class="bangUl">
+            <li class="bangLi">
+                <div class="left"><img src="../images/injin.png" alt=""></div>
+                <div class="right">
+                    <img src="../images/avatar1.png" alt="">
+                    <div><p>邓丽君</p><p>已完成目标新增客户5个</p></div>
+                </div>
+            </li>
+            <li class="bangLi">
+                <div class="left"><img src="../images/inyin.png" alt=""></div>
+                <div class="right">
+                    <img src="../images/avatar1.png" alt="">
+                    <div><p>邓丽君</p><p>已完成目标新增客户5个</p></div>
+                </div>
+            </li>
+            <li class="bangLi">
+                <div class="left"><img src="../images/intong.png" alt=""></div>
+                <div class="right">
+                    <img src="../images/avatar1.png" alt="">
+                    <div><p>邓丽君</p><p>已完成目标新增客户5个</p></div>
+                </div>
+            </li>
+        </ul> -->
+        <div class="speedCont">
+          <p class="tipTitle">快捷工具</p>
+          <ul class="speedContUl">
+            <!-- <li @click="$router.push('/work')"> -->
+            <!-- <li @click="uncultivated">
+                  <img src="../images/inxiericheng.png" alt="">
+                  <span>写日程</span>
+              </li> -->
+              <li @click="GoTrack">
+              <!-- <li @click="uncultivated"> -->
+                  <img src="../images/track.png" alt="">
+                  <span>我的轨迹</span>
+              </li>
+              <!-- <li @click="$router.push('/customer')"> -->
+              <li @click="uncultivated">
+                  <img src="../images/insaomiao.png" alt="">
+                  <span>扫描名片</span>
+              </li>
+              <li @click="$router.push('/dupliCheck')">
+                  <img src="../images/inchachong.png" alt="">
+                  <span>查重</span>
+              </li>
+              <li @click="$router.push('/nearBy')">
+                  <img src="../images/inneary.png" alt="">
+                  <span>附近客户</span>
+              </li>
+          </ul>
+        </div>
+
+        <tabbar :idx="0"></tabbar>
+
+
+         
+    </div>
+</template>
+<script>
+import tabbar from "@/components/bottom";
+export default {
+  name: "index",
+  components: {
+    tabbar
+  },
+  data() {
+    return {
+      curStartTime: '2020-5-31 23:59:59',
+      day: '0',
+      hour: '00',
+      min: '00',
+      second: '00',
+      qiandaoAddress: '',
+      role: ''
+    };
+  },
+  mounted(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+    this.$api.checkToken().then(res=>{
+      if(res.errno === 0){
+        this.$api.userInfo().then(res=>{
+          if(res.errno === 0){
+            localStorage.setItem('userName',res.data.user_name)
+            localStorage.setItem('userId',res.data.user_id)
+            localStorage.setItem('role',res.data.role) // 1为员工，2管理员
+            localStorage.setItem('region',res.data.region) // “全部”为管理员账号，负责多个区域，在标签进行选择客户时增加区域选择功能
+            this.role = res.data.role // 1为员工，2管理员
+            // this.role = 2
+            // this.role = 1
+          }
+        })
+      }else{
+        this.$router.push('/login')
+      }
+    })
+
+    // 当前月最后一天的最后时间
+    let date=new Date();
+    let currentMonth=date.getMonth();
+    let nextMonth=++currentMonth;
+    let nextMonthFirstDay=new Date(date.getFullYear(),nextMonth,1);
+    let lastTime = new Date(nextMonthFirstDay- 1000*60*60*24);
+    let month = parseInt(lastTime.getMonth()+1);
+    this.curStartTime = date.getFullYear() + '-' + month + '-' + lastTime.getDate() + ' '+ '23:59:59'
+    // console.log(this.curStartTime)
+    this.counTime()
+  },
+  methods: {
+    // 主页面返回退出应用
+    leftBack(){
+      let that = this
+      var first = null
+      window.leftBack = function(){
+        if(!first){
+          first = new Date().getTime();
+          that.$toast("再按一次退出应用");
+          setTimeout(function() {
+            first = null;
+          }, 1500);
+        }else{
+          if(new Date().getTime() - first < 1500){
+            android.closeWindow();
+          }
+        }
+      }
+      
+    },
+    counTime(){
+      // 获取当前时间
+      let date = new Date()
+      let now = date.getTime()
+      // 设置截止时间
+      let endDate = new Date(this.curStartTime) // this.curStartTime需要倒计时的日期
+      let end = endDate.getTime()
+      // 时间差
+      let leftTime = end - now
+      // 定义变量 d,h,m,s保存倒计时的时间
+      if (leftTime >= 0) {
+        // 天
+        this.day = Math.floor(leftTime / 1000 / 60 / 60 / 24)
+        // 时
+        let h = Math.floor(leftTime / 1000 / 60 / 60 % 24)
+        this.hour = h < 10 ? '0' + h : h
+        // 分
+        let m = Math.floor(leftTime / 1000 / 60 % 60)
+        this.min = m < 10 ? '0' + m : m
+        // 秒
+        let s = Math.floor(leftTime / 1000 % 60)
+        this.second = s < 10 ? '0' + s : s
+
+      } else {
+        this.day = 0
+        this.hour = '00'
+        this.min = '00'
+        this.second = '00'
+      }
+      // 等于0的时候不调用
+      if (Number(this.hour) === 0 && Number(this.day) === 0 && Number(this.min) === 0 && Number(this.second) === 0) {
+        return
+      } else {
+      // 递归每秒调用countTime方法，显示动态时间效果,
+        setTimeout(this.counTime, 1000)
+      }
+    },
+    addCustomer(){
+      this.$router.push({
+        path: "/addCustomer",
+        query: {
+          from: "index"
+        }
+      })
+    },
+    // 标签管理
+    goTagIndex() {
+      localStorage.setItem("tagIndexFrom", "index")
+      this.$router.push({
+        path: "/tagIndexList",
+        query: {
+          customer_type: 0 // 0 查询全部
+        }
+      });
+    },
+    GoTrack(){
+      // console.log(this.role)
+      if(this.role == 1){ // 普通用户
+        this.$router.push({
+          path: '/trackListPersonal'
+        })
+      }else{ // 管理员
+        this.$router.push({
+          path: '/trackListAdmin'
+        })
+      }
+    },
+    uncultivated(){
+      this.$toast("暂未升级")
+    },
+  },
+};
+</script>
+<style lang="less">
+.index {
+  height: calc(100vh - 50px);
+  background: #f5f5f5 url(../images/intop.png) no-repeat center top;
+  background-size: 100% 30vh;
+  width: 100%;
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 15px 5px 15px;
+    >img:first-child {
+      width: 48px;
+      height: 16px;
+    }
+    div{
+      img {
+        width: 20px;
+        height: 20px;
+        margin-left: 10px
+      }
+    }
+    
+  }
+  .leaderWord{
+    padding: 0 15px;
+    font-size: 15px;
+    color: #ffffff;
+    line-height: 34px;
+    position: relative;
+    &::after{
+      position: absolute;
+      content: ' ';
+      bottom: 0;
+      left: 15px;
+      width: 30px;
+      height: 2px;
+      background: #ffffff;
+    }
+  }
+  .countdown{
+    padding: 0 15px;
+    color: #ffffff;
+    margin-top: 20px;
+    font-size: 13px;
+    span{
+      font-size: 20px;
+      font-weight: bold;
+      padding: 0 5px;
+    }
+  }
+  .module {
+    background: #ffffff url(../images/inheader.png) no-repeat center;
+    background-size: 100% 130px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    width: calc(100% - 80px);
+    height: 95px;
+    margin-top: 20px;
+    li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+        img {
+          width: 30px;
+          height: 30px;
+          margin-bottom: 10px;
+        }
+    }
+  }
+  .mainModule {
+    display: flex;
+    justify-content: left;
+    flex-wrap: wrap;
+    padding: 10px 20px;
+    background: #ffffff;
+    width: calc(100% - 40px);
+    li {
+        display: flex;
+        width: 25%;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+        margin-top: 15px;
+        img {
+          width: 22px;
+          height: 22px;
+          margin-bottom: 10px;
+        }
+    }
+  }
+  .tipTitle{
+    font-size: 15px;
+    padding: 10px 23px;
+    position: relative;
+    &::after{
+      position: absolute;
+      left: 15px;
+      bottom: 13px;
+      top: 13px;
+      content: ' ';
+      width: 3px;
+      background: #1C92FF;
+    }
+  }
+  .bangUl {
+    display: flex;
+    justify-content: left;
+    padding: 0 15px;
+    overflow-x: scroll;
+    scrollbar-width: none; /* firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome Safari */
+    }
+    .bangLi {
+      display: flex;
+      justify-content: left;
+      padding: 10px 15px;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      background: #ffffff;
+      margin-left: 15px;
+      min-width: 220px;
+      .left{
+        img{
+          width: 18px;
+          height: 22px;
+          margin-top: 6px;
+        }
+      }
+      .right{
+        margin-left: 10px;
+        display: flex;
+        justify-content: left;
+        img{
+          width: 36px;
+          height: 36px;
+        }
+        p{
+          margin-left: 6px;
+          &:first-child{
+            font-size: 14px;
+          }
+          &:last-child{
+            color: #AAAAAA;
+          }
+        }
+      }
+      &:first-child{
+        margin-left: 0;
+        border-bottom: 2px solid #FFD754;
+      } 
+      &:nth-of-type(2){
+        border-bottom: 2px solid #DBD7D0;
+      } 
+      &:nth-of-type(3){
+        border-bottom: 2px solid #BC9E9E;
+      } 
+    }
+  }
+  .speedCont{
+    margin: 10px 0;
+    background: #ffffff;
+  }
+  .speedContUl {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 30px 10px 30px;
+    width: calc(100% - 60px);
+    li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+        img {
+          width: 30px;
+          height: 30px;
+          margin-bottom: 10px;
+        }
+    }
+  }
+}
+</style>

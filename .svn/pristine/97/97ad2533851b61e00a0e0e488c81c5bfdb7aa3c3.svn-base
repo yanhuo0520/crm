@@ -1,0 +1,143 @@
+<template>
+  <div class="bottom">
+    <van-tabbar active-color="#000" inactive-color="#333" router fixed>
+      <van-tabbar-item
+        v-for="(item,index) of items"
+        @click="clickItem(item.push)"
+        :key="index"
+        :dot="item.ifDot"
+      >
+        <span>{{item.name}}</span>
+        <img slot="icon" :src="index === idx ?item.iconSelect: item.icon" />
+      </van-tabbar-item>
+    </van-tabbar>
+  </div>
+</template>
+<script>
+export default {
+  name: "bottom",
+  props: ["idx"],
+  data() {
+    return {
+      items: [
+        {
+          name: "CRM",
+          push: "/",
+          icon: require("../images/crm.png"),
+          iconSelect: require("../images/crm-h.png"),
+          ifDot: false
+        },
+        {
+          name: "签到",
+          push: "/work",
+          icon: require("../images/work.png"),
+          iconSelect: require("../images/work-h.png"),
+          ifDot: false
+        },
+        {
+          name: "消息",
+          push: "/msg",
+          icon: require("../images/msg.png"),
+          iconSelect: require("../images/msg-h.png"),
+          ifDot: false
+        },
+        {
+          name: "我的",
+          push: "/ucenter",
+          icon: require("../images/ucenter.png"),
+          iconSelect: require("../images/ucenter-h.png"),
+          ifDot: false
+        }
+      ],
+      countSign: 0
+    };
+  },
+  mounted() {
+    let currentTime = new Date().getHours() + ":" +
+      ((new Date().getMinutes() > 9) ? new Date().getMinutes() : '0' + new Date().getMinutes()) + ":" +
+      ((new Date().getSeconds() > 9) ? new Date().getSeconds() : '0' + new Date().getSeconds());
+    let currentDate = new Date().getFullYear() + '-' + new Date().getMonth() + '-' +new Date().getDate()
+    
+    if(this.$isAndroid()){
+      let work = android.isKeepLocWorking();//手机持续定位是否开启
+      // 统计今日签到次数
+      this.$api.countSignToday().then(res=>{
+        if(res.errno === 0){
+          // 工作时间，只签到一次,未签退，如果定位被关闭，自动开启
+          if(res.data == 1 && !work && new Date(Date.parse(currentDate + ' ' + currentTime)) > new Date(Date.parse(currentDate + ' 00:00:59')) && new Date(Date.parse(currentDate + ' ' + currentTime)) <= new Date(Date.parse(currentDate + ' 18:00:59'))){
+            android.startKeepLoc(localStorage.getItem('token'),'300')//开启手机持续定位，token为登录,5分钟300s定位一次
+          }
+        }
+      })
+    }
+    
+    // 判断是否有新消息
+    this.$api.userInfo().then(res=>{
+      if(res.errno === 0){
+        if(res.data.is_kan == 0 || res.data.work_kan == 0 || res.data.my_kan == 0){ // 默认为0,,1为已读
+          this.items[2].ifDot = true
+        }
+      }
+    })
+
+    this.$api.checkToken().then(res=>{
+      if(res.errno === 0){
+        // 判断是否有新版本
+        this.$api.version().then(res=>{
+          if(res.errno === 0){
+            if(res.data.version_no != localStorage.getItem('version')){
+              this.$dialog.confirm({
+                title: '新版本提醒',
+                message: res.data.content,
+              }).then(() => {
+                if(this.$isAndroid()){
+                  android.cleanCache(); // 清除缓存
+                }
+              })
+              .catch(() => {
+                  // on cancel
+                });
+            }
+          }
+        })
+        // this.$api.userInfo().then(res=>{
+        //   if(res.errno === 0){
+        //     localStorage.setItem('userName',res.data.user_name)
+        //     localStorage.setItem('userId',res.data.user_id)
+        //     localStorage.setItem('role',res.data.role) // 1为员工，2管理员, 3 区域管理员
+        //     localStorage.setItem('province',res.data.province) // 130000河北    410000河南
+        //     localStorage.setItem('region',res.data.region) // “全部”为管理员账号，负责多个区域，在标签进行选择客户时增加区域选择功能
+        //   }
+        // })
+      }else{
+        this.$router.push('/login')
+      }
+    })
+  },
+  methods: {
+    clickItem(push){
+      if(this.$route.path == push){ // 点击已打开页面不跳转
+        return
+      }else{
+        this.$router.push({
+          path: push
+        })
+      }
+
+    },
+
+  },
+};
+</script>
+<style lang="less">
+.bottom {
+  height: 50px;
+  position: fixed;
+  width: 100%;
+  left: 0;
+  bottom: 0;
+  .van-tabbar {
+    box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.5);
+  }
+}
+</style>

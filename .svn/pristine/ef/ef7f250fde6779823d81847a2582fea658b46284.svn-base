@@ -1,0 +1,374 @@
+<template>
+  <div class="mapSearch">
+    <van-nav-bar
+      title="地点微调"
+      left-text="取消"
+      right-text="确定"
+      fixed
+      @click-left="leftBack"
+      @click-right="onClickRight"
+    />
+    <van-search v-model="searchValue" placeholder="请输入搜索关键词" @search="onSearch" />
+    <baidu-map class="map" :center="center" :zoom="zoom" @ready="handler">
+      <bm-marker :position="center" :dragging="true">
+        <!-- <bm-info-window :show="true">{{maptitle}}</bm-info-window> -->
+      </bm-marker>
+    </baidu-map>
+    <div class="searchRust" id="searchRust">
+      <ul v-for="(item, index) in lists" :key="index">
+        <li
+          :class="{'active': item.active}"
+          @click="selectBtn(item.uid, item.title, item.address, item.point.lng, item.point.lat)"
+        >
+          <p class="title">{{item.title}}</p>
+          <p class="address">{{item.address}}</p>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+<script>
+import BaiduMap from "vue-baidu-map/components/map/Map.vue";
+export default {
+  name: "mapSearch",
+  data() {
+    return {
+      searchValue: "",
+      // 地图初始化的位置
+      center: { lng: 113.39852, lat: 34.91405 },
+      // 地图内的大小
+      zoom: 14,
+      // 这个是选择某个点的提醒以及搜索附近的东西的依据
+      maptitle: "",
+      // 这个是搜索下的东西
+      location: "",
+      // 这个是选择搜索列表中数据的title以及经纬度
+      locationdata: {
+        address: "",
+        lng: "",
+        lat: ""
+      },
+      geolocation: "",
+      biaoji: false,
+
+      qiandaoAddress: "",
+      lists: [],
+      userName: "",
+      lat: "",
+      lon: "",
+      from: "",
+      cls: '',
+      keyword: ''
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.onAndroid = this.onAndroid;
+    window.onGetLocation = this.onGetLocation;
+    window.geoc = null;
+    window.convertor = null;
+    window.vue = this;
+
+    this.from = this.$route.query.from;
+    this.cls = this.$route.query.cls;
+    this.keyword = this.$route.query.keyword;
+  },
+
+  methods: {
+    leftBack() {
+      if (
+        this.from == "genjinSel" ||
+        this.from == "customerGenjin" ||
+        this.from == "addCustomer" ||
+        this.from == "contactAdd" ||
+        this.from == "nearBy" ||
+        this.from == "dailyAdd" ||
+        this.from == "weeklyAdd"
+      ) {
+        this.$router.go(-1);
+      } else {
+        this.$router.push({
+          path: "/work"
+        });
+      }
+    },
+    onClickRight() {
+      if (!this.locationdata.address) {
+        this.$toast("请选择位置");
+        return;
+      } else if (this.from == "genjinSel") {
+        this.$router.push({
+          path: "/genjinSel",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat,
+
+          }
+        });
+      } else if (this.from == "customerGenjin") {
+        this.$router.push({
+          path: "/customerGenjin",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat,
+            cls: this.cls,
+            keyword: this.keyword,
+          }
+        });
+      } else if (this.from == "addCustomer") {
+        this.$router.push({
+          path: "/addCustomer",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat
+          }
+        });
+      } else if (this.from == "contactAdd") {
+        this.$router.push({
+          path: "/contactAdd",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat
+          }
+        });
+      } else if (this.from == "nearBy") {
+        this.$router.push({
+          path: "/nearBy",
+          query: {
+            addressSel: this.locationdata.address,
+            lng: this.locationdata.lng,
+            lat: this.locationdata.lat
+          }
+        });
+      }else if (this.from == "dailyAdd") {
+        this.$router.push({
+          path: "/dailyAdd",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat
+          }
+        });
+      }else if (this.from == "weeklyAdd") {
+        this.$router.push({
+          path: "/weeklyAdd",
+          query: {
+            addressSel: this.locationdata.address,
+            lnglatSel: this.locationdata.lng + "," + this.locationdata.lat
+          }
+        });
+      } else {
+        this.$router.push({
+          path: "/work",
+          query: {
+            address: this.locationdata.address,
+            lng: this.locationdata.lng,
+            lat: this.locationdata.lat
+          }
+        });
+      }
+    },
+    selectBtn(uid, title, address, lng, lat) {
+      window.map = map; //注册为全局
+      var point = new BMap.Point(lng, lat);
+      map.panTo(point);
+      if(address){
+        this.locationdata.address = title + '—' +  address;
+      }else{
+        this.locationdata.address = title;
+      }
+      
+      this.locationdata.lng = lng;
+      this.locationdata.lat = lat;
+      for (var i = 0; i < this.lists.length; i++) {
+        this.lists[i].active = false;
+        if (this.lists[i].uid == uid) {
+          this.lists[i].active = true;
+        }
+      }
+    },
+    onSearch(val) {
+      let that = this;
+      window.map = map; //注册为全局
+      map.clearOverlays();
+      var local = new BMap.LocalSearch(map, {
+        renderOptions: {
+          map: map,
+          autoViewport: false //自动结果标注
+          // panel: "searchRust"
+        },
+        onMarkersSet: function(pois) {
+          let searchList = pois;
+          searchList[0].active = true;
+          // that.locationdata.address = pois[0].address;
+          if(pois[0].address){
+            that.locationdata.address = pois[0].title + '—' +  pois[0].address;
+          }else{
+            that.locationdata.address = pois[0].title;
+          }
+          
+          that.locationdata.lng = pois[0].point.lng;
+          that.locationdata.lat = pois[0].point.lat;
+          for (var i = 1; i < searchList.length; i++) {
+            searchList[i].active = false;
+          }
+
+          that.lists = searchList;
+        }
+      });
+      local.search(val);
+    },
+    // 由于百度地图 JS API 只有 JSONP 一种加载方式，因此 BaiduMap 组件及其所有子组件的渲染只能是异步的。因此，请使用在组件的 ready 事件来执行地图 API 加载完毕后才能执行的代码，不要试图在 vue 自身的生命周期中调用 BMap 类，更不要在这些时机修改 model 层。
+    handler({ BMap, map }) {
+      window.map = map; //注册为全局
+      var that = this; // map方法中的this指向不对。所有申明一个。。小细节的东西
+      // 刚进入页面中的定位，需要向用户授权
+      var point = new BMap.Point(113.39852, 34.897445);
+
+      var geolocation = new BMap.Geolocation();
+      var geoc = new BMap.Geocoder();
+      window.geoc = geoc;
+
+      var convertor = new BMap.Convertor();
+      window.convertor = convertor;
+
+      var isAndroid = localStorage.getItem("isAndroid");
+      if (isAndroid == "123") {
+        android.requestLocation();
+      } else {
+        this.geolocation = geolocation;
+        geolocation.getCurrentPosition(
+          function(r) {
+            if (this.getStatus() == BMAP_STATUS_SUCCESS) {
+              var mk = new BMap.Marker(r.point);
+              map.addOverlay(mk);
+              map.panTo(r.point);
+              var pt = r.point;
+              geoc.getLocation(pt, function(rs) {
+                var addComp = rs.addressComponents;
+                that.qiandaoAddress =
+                  addComp.province +
+                  addComp.city +
+                  addComp.district +
+                  addComp.street +
+                  addComp.streetNumber;
+
+                that.lists = [
+                  {
+                    address: that.qiandaoAddress,
+                    point: rs.point,
+                    active: true
+                  }
+                ];
+                that.locationdata.address = rs.address;
+                that.locationdata.lng = rs.point.lng;
+                that.locationdata.lat = rs.point.lat;
+              });
+            } else {
+              alert("failed" + this.getStatus());
+            }
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    },
+    // 移动开始
+    movemapstart() {
+      this.biaoji = false;
+    },
+    getlocalsearch(e) {
+      // console.log(e)
+      // this.maptitle = e.address
+
+      this.locationdata.title = e.address + e.title;
+      this.locationdata.center = e.point;
+    },
+    onAndroid() {
+      // this.$isAndroid = true
+      localStorage.setItem("isAndroid", "123");
+    },
+    onGetLocation(lat, lon) {
+      var that = this;
+      var centerGet = new BMap.Point(lon, lat);
+      var convertor = window.convertor;
+      var pointArr = [];
+      pointArr.push(centerGet);
+      convertor.translate(pointArr, 1, 5, function(data) {
+        if (data.status === 0) {
+          // that.qiandaoAddress = data;
+          that.lon = data.points[0].lng;
+          that.lat = data.points[0].lat;
+          that.center.lng = data.points[0].lng;
+          that.center.lat = data.points[0].lat;
+          var geoc = window.geoc;
+          var center = Object.assign({}, that.center);
+          center = new BMap.Point(center.lng, center.lat);
+          geoc.getLocation(center, function(rs) {
+            var addComp = rs.addressComponents;
+            that.qiandaoAddress = addComp;
+            if (addComp.province) {
+              that.qiandaoAddress =
+                addComp.province +
+                addComp.city +
+                addComp.district +
+                addComp.street +
+                addComp.streetNumber;
+
+              that.lists = [
+                { address: that.qiandaoAddress, point: rs.point, active: true }
+              ];
+              that.locationdata.address = rs.address;
+              that.locationdata.lng = rs.point.lng;
+              that.locationdata.lat = rs.point.lat;
+            }
+          });
+        }
+      });
+    }
+  }
+};
+</script>
+<style lang="less">
+.mapSearch {
+  // min-height: 100%;
+  height: calc(96vh - 50px);
+  padding-top: 50px;
+  background: #ffffff;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text,
+    .van-nav-bar__title {
+      color: #fff;
+    }
+  }
+  .map {
+    width: 100%;
+    height: 160px;
+  }
+  .searchRust {
+    // height: calc(100% - 264px);
+    height: calc(100% - 210px);
+    overflow-y: scroll;
+    padding: 10px 15px;
+    li {
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eeeeee;
+      .title {
+        font-size: 14px;
+      }
+      .address {
+        color: #666666;
+        padding-right: 20px;
+      }
+      &.active {
+        background: url(../images/select.png) no-repeat center right;
+        background-size: 16px auto;
+      }
+    }
+  }
+}
+</style>

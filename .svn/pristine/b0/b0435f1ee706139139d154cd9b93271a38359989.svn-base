@@ -1,0 +1,423 @@
+<template>
+  <div class="dailyList">
+    <van-nav-bar
+      left-text="日报列表"
+      left-arrow
+      fixed
+      @click-left="leftBack">
+    <template #right>
+         <van-icon name="down" size="18" @click="dateShowDown=true" />
+       </template>
+    </van-nav-bar>
+
+    <van-overlay :show="dateShowDown" @click="dateShowDown=false" />
+    <van-datetime-picker v-model="currentDateDown" type="year-month" title="选择导出年月" :min-date="minDate" :max-date="maxDate" v-show="dateShowDown" :formatter="formatter"
+      @confirm="handleTimeDown" @cancel="dateShowDown=false" />
+
+    <div class="searchCont">
+      <div class="searchDiv" @click="dateShow1 = true">
+        <input type="text" placeholder="开始日期" v-model="start_time" readonly />
+        <img src="../../images/date2.png" alt />
+      </div>
+      <div class="andLine">-</div>
+      <div class="searchDiv" @click="dateShow2 = true">
+        <input type="text" placeholder="结束日期" v-model="end_time" readonly />
+        <img src="../../images/date2.png" alt />
+      </div>
+      <div class="searchBtn" @click="search">搜索</div>
+    </div>
+
+    <div class="content" v-if="lists!=''">
+      <div class="listUl" v-for="(item, index) in lists" :key="index" @click="detail(item.report_id, item.start_time, item.end_time)">
+        <div class="liTop">
+          <img class="header" src="../../images/avatar1.png" alt />
+          <div>
+            <p>{{userName}}的日报</p>
+            <p>{{item.add_time}}</p>
+          </div>
+        </div>
+        <div class="liContent">
+          <p>今日总结：{{item.now_summary}}</p>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="lists == '' && start_time && end_time" class="zanwu">
+      <span>暂无<span class="tip">"{{start_time}}-{{end_time}}"</span>的日报</span>
+    </div>
+    <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+
+    <van-overlay :show="dateShow1" @click="closeDateTime1" />
+      <van-datetime-picker
+        v-model="currentDate1"
+        type="date"
+        :min-date="minDate"
+        :max-date="maxDate"
+        v-show="dateShow1"
+        @confirm="handleTime1"
+        @cancel="closeDateTime1"
+      />
+
+    <van-overlay :show="dateShow2" @click="closeDateTime2" />
+      <van-datetime-picker
+        v-model="currentDate2"
+        type="date"
+        :min-date="minDate"
+        :max-date="maxDate"
+        v-show="dateShow2"
+        @confirm="handleTime2"
+        @cancel="closeDateTime2"
+      />
+  </div>
+</template>
+<script>
+export default {
+  name: "dailyList",
+  data() {
+    return {
+      userName: '',
+      userId: localStorage.getItem("userId"),
+      token: localStorage.getItem("token"),
+      loading: 1,
+      lists: [],
+      page: 1,
+      pageSize: 10,
+      totalPage: 1,
+
+      minDate: new Date(2020, 0, 1),
+      maxDate: new Date(),
+
+      start_time: '',
+      currentDate1: new Date(),
+      dateShow1: false,
+
+      end_time: '',
+      currentDate2: new Date(),
+      dateShow2: false,
+
+      dateShowDown: false,
+      currentDateDown: new Date(),
+
+      isFromUserList: false
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+    this.getList();
+    document.documentElement.scrollTop = 0;
+    window.addEventListener("scroll", this.scrollBottomDailyIndex);
+
+  },
+  methods: {
+    leftBack(){
+      if (this.isFromUserList) {
+        this.$router.go(-1)
+      } else {
+        this.$router.push({
+          path: "/dailyAdd"
+        });
+      }
+    },
+    handleTime1(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" +
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" +
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+      if(datetime > this.end_time && this.end_time != ''){
+        this.$toast("开始时间大于结束时间")
+        return
+      }
+      this.currentDate1 = datetime;
+      this.start_time = datetime;
+      this.dateShow1 = false
+    },
+    closeDateTime1(){
+      this.dateShow1 = false
+      this.currentDate1 = new Date()
+    },
+    handleTime2(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" +
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" +
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+        if(datetime < this.start_time && this.start_time != ''){
+        this.$toast("结束时间小于开始时间")
+        return
+      }
+      this.currentDate2 = datetime;
+      this.end_time = datetime;
+      this.dateShow2 = false
+    },
+    closeDateTime2(){
+      this.dateShow2 = false
+      this.currentDate2 = new Date()
+    },
+    formatter(type, val) {
+        if (type === 'year') {
+          return `${val}年`;
+        } else if (type === 'month') {
+          return `${val}月`;
+        }
+        return val;
+      },
+      // 选择完日期进行导出
+      handleTimeDown(value){
+        var d = new Date(value);
+        var datetime = d.getFullYear() + "-" +
+          ((d.getMonth() < 9) ? ('0' + (d.getMonth() + 1)) : (d.getMonth() + 1));
+        this.dateShowDown = false
+        // window.location.href = 'http://172.168.0.81/crm/index.php/user/travel/travel_export?user_id=' + this.userId + '&date=' + datetime + '&token=' + this.token
+        window.location.href = 'http://crm.xfd365.com/user/travel/travel_export?user_id=' + this.userId + '&date=' + datetime + '&token=' + this.token
+      },
+
+    search() {
+      this.page = 1
+      this.getList()
+    },
+    scrollBottomDailyIndex(e) {
+      let that = this;
+      var scrollTop =
+        e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+      let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+      let scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      ); /*文档完整的高度*/
+      if (
+        scrollHeight - clientHeight - scrollTop <= 0 &&
+        that.page < that.totalPage
+      ) {
+        that.page += 1;
+        that.loading = 1;
+        that.getList();
+      }
+    },
+    getList() {
+      var that = this;
+      let data = {}
+        data.type = 1
+        data.page = that.page
+        data.size = that.pageSize
+        data.start_time = that.start_time
+        data.end_time = that.end_time
+        data.user_id = that.userId
+
+      this.$api.reportLists(data).then(res => {
+          that.totalPage = res.total_page;
+          if (res.errno === 0) {
+            if (that.page == 1) {
+              that.loading = 0;
+              that.lists = res.data;
+            } else if (res.data.length > 0) {
+              that.lists.push(...res.data);
+              if (res.data.length < that.pageSize ||(res.data.length == that.pageSize && that.page == that.totalPage)) {
+                that.loading = 0;
+              }
+            } else if (that.page == that.totalPage) {
+              that.loading = 0;
+            }
+
+          } else {
+            that.loading = 0;
+            that.lists = []
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    // 编辑，展示之前的内容，提交后是一条新的数据，不会覆盖之前的
+    edit(report_id, start_time, end_time){
+      this.$router.push({
+        path: '/dailyAdd',
+        query: {
+          report_id: report_id
+        }
+      })
+    },
+    // 查看详情
+    detail(report_id, start_time, end_time){
+      this.$router.push({
+        path: '/dailyDetail',
+        query: {
+          report_id: report_id,
+          start_time: start_time.substr(0, 10),
+          end_time: end_time.substr(0, 10),
+          user_name: this.userName
+        }
+      })
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if(from.path == "/dailyDetail"){
+      to.meta.isBack = true;
+    }else{
+      to.meta.isBack = false;
+    }
+    next()
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    this.userName = localStorage.getItem("userName")
+    this.userId = localStorage.getItem("userId")
+    if (this.$route.query.user_id) {
+      this.userId = this.$route.query.user_id
+      this.userName = this.$route.query.user_name
+      this.isFromUserList = true
+    }
+    if(!this.$route.meta.isBack){ // 不缓存
+      document.documentElement.scrollTop = 0
+      this.page = 1
+      this.start_time = ''
+      this.end_time = ''
+      this.getList();
+    }
+    this.$route.meta.isBack = false;
+  },
+  destroyed() {
+    window.removeEventListener('scroll', this.scrollBottomDailyIndex);//监听页面滚动事件
+  }
+};
+</script>
+<style lang="less">
+.dailyList {
+  min-height: calc(100% - 50px);
+  background: #f5f5f5;
+  padding-top: 50px;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .searchCont{
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    background: #ffffff;
+    .andLine{
+      margin: 0 5px;
+    }
+    .searchBtn{
+      margin-left: 10px;
+      margin-top: 5px;
+      font-size: 14px;
+      color: #ffffff;
+      width: 70px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      border-radius: 30px;
+      background: #1c92ff;
+    }
+  }
+  .searchDiv {
+    display: flex;
+    position: relative;
+    padding: 10px 0;
+    background: #ffffff;
+    input {
+      height: 28px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding-left: 10px;
+      border-radius: 30px;
+      border: 1px solid #eeeeee;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #AAAAAA;
+    }
+    ::-webkit-input-placeholder {
+      color: #AAAAAA;
+    }
+    img {
+      position: absolute;
+      right: 10px;
+      top: 18px;
+      width: 14px;
+    }
+  }
+  .listUl {
+    padding: 15px;
+    font-size: 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #eeeeee;
+    .liTop {
+      display: flex;
+      img.header {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+      div {
+        p {
+          &:first-child {
+            font-size: 14px;
+            font-weight: bold;
+          }
+          &:last-child {
+            margin-top: 3px;
+            font-size: 12px;
+            color: #666666;
+          }
+        }
+      }
+    }
+    .liContent {
+      p{
+        color: #666666;
+        margin-top: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      ul{
+        display: flex;
+        color: #1c92ff;
+        li{
+         padding-top: 10px;
+         width: 50px;
+        }
+      }
+    }
+  }
+  .van-picker {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 999;
+    }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+    .tip{
+      color: red;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

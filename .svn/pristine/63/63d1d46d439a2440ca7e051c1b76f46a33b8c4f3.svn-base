@@ -1,0 +1,349 @@
+<template>
+  <div class="siteStatiseSearch">
+    <div class="top">
+      <img src="../../images/goback.png" alt @click="$router.go(-1)" />
+      <input type="text" placeholder="请输入姓名或手机号" v-model="value" @input="changeInput()" />
+      <img src="../../images/search.png" alt @click="searchAll" />
+    </div>
+
+    <p>历史搜索</p>
+
+    <ul>
+      <li v-for="(item,index) in historyList" :key="index" @click="searchItem(item)">{{item}}</li>
+    </ul>
+
+    <div class="content" v-if="lists!=''">
+      <div class="detail" v-for="(item, index) in lists" :key="index">
+        <div @click="toDetail(item.site_id)">
+          <h4>{{item.site_name}} | {{item.sign_phone}}</h4>
+        </div>
+        <ul @click="toDetail(item.site_id)">
+          <li v-if="item.business">
+            <img src="http://sc.xfd365.com/crmImages/busentity.png" alt />
+            <span>{{item.business}}</span>
+          </li>
+          <li v-if="item.business_address">
+            <img src="../../images/dingwei.png" alt />
+            <span>{{item.business_address}}</span>
+          </li>
+        </ul>
+        <ul>
+          <li @click="toDetail(item.site_id)">
+            <img src="../../images/detail.png" alt />
+            <span>查看详情</span>
+          </li>
+          <li @click="toEdit(item.site_id)">
+            <img src="../../images/customerEdit.png" alt />
+            <span>编辑客户</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div v-else-if="lists == '' && value && loading != 1 && ifShow" class="zanwu">
+      <!-- <img src="../images/zanwu.png" alt /> -->
+      <span>暂无<span class="tip">"{{value}}"</span>相关内容</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+
+
+  </div>
+</template>
+<script>
+export default {
+  name: "siteStatiseSearch",
+  data() {
+    return {
+        value: '',
+        loading: 0,
+        lists: [],
+        historyList: [],
+        page: 1,
+        pageSize: 10,
+        totalPage: 1,
+        ifShow: false
+    };
+  },
+  created() {
+    document.documentElement.scrollTop = 0
+    let that = this;
+    //获取localstorage
+    let storage = window.localStorage;
+    if (storage.getItem("siteSearchWord") !== null) {
+      that.historyList = JSON.parse(storage.getItem("siteSearchWord"));
+    }
+  },
+  mounted(){
+    window.addEventListener('scroll', this.scrollBottom)
+  },
+  methods: {
+    changeInput(){
+      this.ifShow = false
+    },
+    scrollBottom(e){
+        let that = this;
+        var scrollTop = e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+        let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+        let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight); /*文档完整的高度*/
+        if ((scrollHeight - clientHeight - scrollTop) <= 0 && that.page < that.totalPage) {
+            that.page +=1
+            that.loading = 1
+            that.searchAll();
+        }
+    },
+    searchAll: function(item) {
+      var that = this;
+      var val = that.value.trim();
+      
+      if (val != "") {
+        that.loading = 1
+        let storage = window.localStorage;
+        if (storage.getItem("siteSearchWord") == null) {
+          that.historyList.unshift(val);
+          storage.setItem("siteSearchWord", JSON.stringify(that.historyList));
+        } else {
+          if (that.historyList.indexOf(val) != -1) {
+            that.historyList.splice(that.historyList.indexOf(val), 1);
+            that.historyList.unshift(val);
+          } else {
+            that.historyList.unshift(val);
+          }
+
+          if (that.historyList.length > 5) {
+            that.historyList.pop();
+          }
+          storage.setItem("siteSearchWord", JSON.stringify(that.historyList));
+        }
+
+        
+        this.$api.siteStatiseList({
+            page: that.page,
+            size: that.pageSize,
+            keyword: val
+          })
+          .then(res => {
+            that.totalPage = res.total_page;
+            if (res.errno === 0) {
+              if (that.page == 1) {
+                that.loading = 0;
+                that.lists = res.data;
+              } else if (res.data.length > 0) {
+                that.lists.push(...res.data);
+                if (res.data.length < that.pageSize || (res.data.length == that.pageSize && that.page == that.totalPage)) {
+                  that.loading = 0;
+                }
+              } else if (that.page == that.totalPage) {
+                that.loading = 0;
+              }
+            } else {
+              that.loading = 0
+              that.lists = []
+              that.ifShow = true
+              this.$toast(res.errmsg);
+            }
+          });
+      } else {
+        
+      }
+    },
+    searchItem(item) {
+      let that = this;
+      that.value = item;
+      that.page = 1;
+      that.searchAll();
+    },
+    toDetail(id) {
+      this.$router.push({
+        path: "/siteStatiseDetail",
+        query: {
+          id: id,
+          keyword: this.value
+        }
+      });
+    },
+    toEdit(id) {
+      this.$router.push({
+        path: "/siteStatiseAdd",
+        query: {
+          id: id,
+          keyword: this.value
+        }
+      });
+    }
+
+  },
+  beforeRouteEnter(to, from, next){
+    let keyword = from.query.keyword
+    if(keyword != '' && keyword != undefined){
+        to.meta.keyword = keyword
+      }else{
+        to.meta.keyword = ''
+      }
+    if (from.path == "/siteStatise" || from.path == "/siteStatiseAdd") {
+      to.meta.isBack = false;
+    } else {
+      to.meta.isBack = true;
+    }
+    next();
+  },
+  beforeRouteLeave(to, from, next){
+     to.meta.keyword = '';
+     this.value = ''
+     next()
+  },
+  activated() {
+    this.value = this.$route.meta.keyword;
+
+    if (!this.$route.meta.isBack) {
+        // console.log("不缓存")
+      if(this.$route.meta.keyword != ''){
+        document.documentElement.scrollTop = 0
+        this.searchItem(this.value)
+      }else{
+        this.loading = 0
+        this.page = 1
+        this.lists = [];
+      }
+    }
+    this.$route.meta.isBack = false;
+  }
+
+};
+</script>
+<style lang="less">
+.siteStatiseSearch {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: url("../../images/msgBg.jpg") no-repeat;
+    width: calc(100% - 32px);
+    height: 50px;
+    background-size: 100% 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    img:first-of-type {
+      width: 10px;
+      height: 16px;
+      margin-right: 10px;
+    }
+    img:last-of-type {
+      width: 20px;
+      height: 20px;
+    }
+    input {
+      height: 35px;
+      border: none;
+      width: 95%;
+      border-bottom: 1px solid #ffffff;
+      color: #fff;
+      background: transparent;
+    }
+    input:-ms-input-placeholder {
+      color: #fff;
+    }
+    ::-webkit-input-placeholder {
+      color: #fff;
+    }
+  }
+  > p {
+    color: #aaa;
+    font-size: 14px;
+    padding: 10px 0 0 16px;
+    background: #ffffff;
+  }
+  > ul {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    li {
+      padding: 5px 10px;
+      background: #eee;
+      color: #444;
+      margin-left: 16px;
+      margin-top: 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+  }
+  .content {
+    .detail {
+      margin-bottom: 10px;
+      background: #fff;
+      > div {
+        padding-left: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        height: 50px;
+        border-bottom: 1px solid #eeeeee;
+      }
+      > ul:first-of-type {
+        border-bottom: 1px solid #eeeeee;
+        li {
+          padding: 3px 20px;
+          line-height: 20px;
+          color: #aaa;
+          font-size: 14px;
+          &:first-child{
+            padding-top: 10px;
+          }
+          &:last-child{
+            padding-bottom: 10px;
+          }
+          img {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+          }
+        }
+      }
+      > ul:last-of-type {
+        display: flex;
+        justify-content: flex-start;
+        li {
+          width: 50%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 50px;
+          border-right: 1px solid #eeeeee;
+          img {
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+    .tip{
+      color: red;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

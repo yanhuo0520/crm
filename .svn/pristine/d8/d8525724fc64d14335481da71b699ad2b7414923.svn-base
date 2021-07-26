@@ -1,0 +1,253 @@
+<template>
+  <div class="tagList">
+    <van-nav-bar
+      :left-text="leftText"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+    />
+
+    <div class="tagListCont" v-if="userData != ''">
+      <van-index-bar :index-list="indexList" :sticky-offset-top="stickyOffsetTop">
+        <div v-for="(item, index) in userData" :key="index" class="contentUl">
+          <van-index-anchor :index="index">{{index}}</van-index-anchor>
+          <van-swipe-cell
+            v-for="(item1, index1) in item"
+            :key="index1"
+            :name="item1.customer_id + '-' + item1.tagtype"
+            :before-close="beforeClose"
+          >
+            <div class="content" @click="toDetail(item1.customer_id, item1.tagtype, item1.stype, item1.linker_id, item1.site_id)">
+              <p :class="item1.serverName?'stationA':'stationB'">{{item1.customerName}} | {{item1.phones}}</p>
+              <p class="station" v-if="item1.serverName">{{item1.serverName}}</p>
+            </div>
+            <a :href="'tel:' + item1.phones" class="phoneTip">
+              <img src="../images/tel.png" alt />
+            </a>
+            <template #right>
+              <van-button square type="danger" text="删除" />
+            </template>
+          </van-swipe-cell>
+        </div>
+      </van-index-bar>
+    </div>
+    <div v-else-if="userData == '' && !loading" class="zanwu">
+      <span>暂无客户</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+
+  </div>
+</template>
+<script>
+export default {
+  name: "tagList",
+  data() {
+    return {
+      leftText: '企业标签',
+      customer_type: '',
+      tag_id: '',
+      loading: 1,
+      stickyOffsetTop: 50,
+      indexList: [],
+      userData: []
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+    var tag = this.$route.query.tag;
+    this.leftText = tag
+    var customer_type = this.$route.query.customer_type;
+    this.customer_type = customer_type; // 1 其他新增客户  2 建行客户   0 全部
+
+    var tag_id = this.$route.query.tag_id;
+    this.tag_id = tag_id
+    this.getList();
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    },
+    getList() {
+      let that = this;
+      this.$api.tagUserList({ type: that.customer_type, customer_tag_id: that.tag_id}).then(res => {
+        if (res.errno === 0) {
+          that.loading = 0
+          if (res.data) {
+            that.indexList = Object.keys(res.data);
+            that.userData = res.data;
+          }
+        }else{
+          that.loading = 0
+          that.$toast(res.errmsg)
+          that.indexList = []
+          that.userData = []
+        }
+      });
+    },
+    // 侧滑删除标签下的客户
+    beforeClose({ name, position, instance }) {
+      switch (position) {
+        case "outside":
+          instance.close();
+          break;
+        case "right":
+          // console.log("删除" + name)
+          var array = name.split("-");
+          let data = {};
+          data.customer_tag_id = this.tag_id;
+          data.customer_id = array[0];
+          if (array[1] == "station") {
+            data.type = 1; // 1删除新增客户的标签，2删除建行客户的标签
+          } else {
+            data.type = 2;
+          }
+          this.$api.tagUserDelete(data).then(res => {
+            if (res.errno === 0) {
+              this.getList();
+            } else {
+              this.$toast(res.errmsg);
+            }
+          });
+
+          instance.close();
+          break;
+      }
+    },
+    toDetail(id, tagtype, stype, linker_id,  site_id) {
+      console.log(id+'-'+tagtype+'-'+stype+'-'+linker_id+'-'+site_id)
+      if (tagtype == "customer") {
+        // console.log("建行客户")
+        this.$router.push({
+          path: "/ccbCustomerDetail",
+          query: {
+            id: id,
+            site_id: site_id
+          }
+        });
+      } else {
+        if(stype == 1){ // stype  1是关联客户  linker_id是主客户id
+          // console.log("新增客户--关联")
+          localStorage.setItem("stationActive", 2) // 进入详情显示关联客户
+          this.$router.push({
+            path: "/customerDetail",
+            query: {
+              id: linker_id,
+              site_id: site_id
+            }
+          });
+        }else{
+          //  console.log("新增客户--主客户")
+          this.$router.push({
+            path: "/customerDetail",
+            query: {
+              id: id,
+              site_id: site_id
+            }
+          });
+        }
+      }
+      
+    }
+  },
+};
+</script>
+<style lang="less">
+.tagList {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    z-index: 2;
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .van-index-bar__index{
+    line-height: 18px;
+    color: #999999;
+  }
+  .van-index-bar__index--active,
+  .van-index-anchor,
+  .van-index-anchor--sticky{
+    color: #1C92FF;
+  }
+  .contentUl{
+    .van-swipe-cell{
+      margin: 0 15px;
+      border-bottom: 1px solid #eee;
+      &:nth-of-type(2){
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+      &:last-child{
+        border-bottom: none;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+      }
+    }
+  }
+  .van-swipe-cell__wrapper{
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+  }
+  .content {
+    padding: 0 0 10px 10px;
+    min-height: 40px;
+    background: #fff;
+    font-size: 14px;
+    flex: 1;
+    p {
+      &.stationA {
+        padding-top: 8px;
+      }
+      &.stationB {
+        padding-top: 16px;
+      }
+      &.station {
+        font-size: 12px;
+        color: #888888;
+      }
+    }
+  }
+  .phoneTip{
+    align-items: center;
+    padding: 10px;
+      img{
+        width: 30px;
+      }
+    }
+  .van-button--danger{
+    height: 100%;
+  }
+
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    span.tip{
+      color:red;
+    }
+    img {
+      width: 80%;
+    }
+  }
+  .van-loading{
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

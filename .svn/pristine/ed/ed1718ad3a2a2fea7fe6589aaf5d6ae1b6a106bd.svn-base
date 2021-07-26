@@ -1,0 +1,604 @@
+<template>
+  <div class="contactAdd">
+    <van-nav-bar :left-text="leftText" left-arrow fixed @click-left="leftBack" />
+    <div class="marBottom">
+      <van-cell
+        title="客户标签"
+        @click="tagList"
+        is-link
+        :value="typeName"
+        icon="http://sc.xfd365.com/crmImages/tag.png"
+      />
+    </div>
+    <div class="marBottom">
+      <van-field
+        placeholder="请输入姓名"
+        label="姓名"
+        left-icon="http://sc.xfd365.com/crmImages/name.png"
+        input-align="right"
+        v-model="name"
+      />
+      <van-field
+        placeholder="请输入电话"
+        type="tel"
+        label="电话"
+        left-icon="http://sc.xfd365.com/crmImages/phone.png"
+        input-align="right"
+        v-model="mobile"
+        maxlength="11"
+      />
+      <van-field
+        placeholder="请输入邮箱"
+        label="邮箱"
+        left-icon="http://sc.xfd365.com/crmImages/aemail.png"
+        input-align="right"
+        v-model="email"
+      />
+      <van-field
+        placeholder="请输入公司"
+        label="公司"
+        left-icon="http://sc.xfd365.com/crmImages/customerName.png"
+        input-align="right"
+        v-model="company"
+      />
+      <van-field
+        placeholder="请输入职位"
+        label="职位"
+        left-icon="http://sc.xfd365.com/crmImages/yewu.png"
+        input-align="right"
+        v-model="zhiwei"
+      />
+      <van-cell class="getAddress" title="地址" :value="address" icon="http://sc.xfd365.com/crmImages/dingwei.png" is-link @click="mapSearch" />
+      <baidu-map @ready="handler"></baidu-map>
+    </div>
+    <div class="marBottom">
+      <van-cell title="备注" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+      <van-field v-model="message" rows="2" autosize type="textarea" placeholder="请输入备注信息" />
+    </div>
+
+    <button class="save" v-if="hidshowFooter" @click="save">保存</button>
+
+    <van-popup v-model="isType">
+      <div class="content">
+        <div class="imgDiv">
+          <img src="http://sc.xfd365.com/crmImages/tags.png" alt />
+        </div>
+        <p>*可以选择多种标签</p>
+        <ul>
+          <li
+            v-for="(item,index) in type"
+            :key="index"
+            :class="item.ischecked?'active':''"
+            @click="item.ischecked = !item.ischecked"
+          >{{item.tag_name}}</li>
+        </ul>
+        <button @click="closeType">确定</button>
+      </div>
+    </van-popup>
+    <!-- <img src="http://sc.xfd365.com/crmImages/tags.png" alt v-show="isType" /> -->
+  </div>
+</template>
+<script>
+import BaiduMap from "vue-baidu-map/components/map/Map.vue";
+export default {
+  name: "contactAdd",
+  data() {
+    return {
+      leftText: "添加外部联系人",
+      isType: false,
+      typeName: "请选择标签类型",
+      label: "",
+      typeNameArray: [],
+      tag_id: "",
+      type: [
+        // {
+        //   title: "益农社站长",
+        //   ischecked: false
+        // }
+      ],
+      name: "",
+      mobile: "",
+      email: "",
+      company: "",
+      zhiwei: "",
+      address: '',
+      lnglat: '',
+      location: '',
+      locationlnglat: '',
+      message: "",
+      linker_id: "",
+      from: '',
+      
+      docmHeight: document.documentElement.clientHeight,  //默认屏幕高度       
+      showHeight:  '0',   //实时屏幕高度        
+      hidshowFooter:true,  //显示或者隐藏footer, 
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null;
+    window.convertor = null
+    window.vue = this;
+
+    
+    document.documentElement.scrollTop = 0;
+
+    // window.onresize监听页面高度的变化
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+    }
+    
+    var id = this.$route.query.id;
+    if (this.$route.query.id) {
+      this.leftText = "编辑外部联系人";
+      this.linker_id = id;
+      this.$api.contactDetail({ linker_id: id }).then(res => {
+        if (res.errno === 0) {
+          if (res.data) {
+            this.label = res.data.tag_name;
+            this.tag_id = res.data.tag_id;
+            if (this.label) {
+              let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+              var typeName = "";
+              typeNameArray.forEach(ele => {
+                typeName += ele + "、";
+              });
+            }
+            this.typeName = typeName;
+            this.name = res.data.name;
+            this.mobile = res.data.phone;
+            this.email = res.data.email;
+            this.company = res.data.company;
+            this.zhiwei = res.data.position;
+            this.address = res.data.address;
+            this.lnglat = res.data.lnglat;
+            this.message = res.data.note;
+          }
+        }
+      });
+    }
+  },
+  methods: {
+    closeType() {
+      var type = this.type;
+      var arr = type.filter(ele => {
+        return ele.ischecked;
+      });
+      arr = JSON.parse(JSON.stringify(arr));
+      var typeNameArray = []
+      var typeName = "";
+      var label = "";
+      var tag_id = "";
+      arr.forEach(ele => {
+        typeNameArray.push(ele.tag_name)
+        typeName += ele.tag_name + "、";
+        label += ele.tag_name + "#";
+        tag_id += ele.tag_id + ","
+      });
+      this.typeNameArray = typeNameArray
+      this.typeName = typeName;
+      this.label = label;
+      this.tag_id = tag_id;
+      this.isType = false;
+    },
+    leftBack() {
+      // this.$router.go(-1);
+      if(this.from == "contact"){
+        this.$router.push({
+          path: "/contact"
+        });
+      }else{
+        this.$router.push({
+          path: "/contactList",
+          query: {
+            type: 2
+          }
+        });
+      }
+    },
+    tagList(){ // 获取标签列表
+      let that = this;
+      that.isType = true
+      // this.$api.contactTagList().then(res=>{ // 联系人标签
+      this.$api.tagList({type: 2}).then(res=>{ // 所有标签列表
+        if(res.errno === 0){
+          if(res.data){
+            that.type = []
+            res.data.forEach(ele => {
+              let tag_name = ele.tag_name
+              if(that.typeNameArray.indexOf(tag_name) > -1){
+                ele.ischecked = true
+              }else{
+                ele.ischecked = false
+              }
+              that.type.push(ele)
+            });
+          }
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    },
+    mapSearch(){
+      this.$router.push({
+        path: "/mapSearch",
+        query: {
+          from: 'contactAdd'
+        }
+      });
+    },
+   handler({ BMap, map }) {
+      window.map = map; //注册为全局
+      var that = this; // map方法中的this指向不对。所有申明一个。。小细节的东西
+      // 刚进入页面中的定位，需要向用户授权
+      var point = new BMap.Point(113.39852, 34.897445);
+
+      var geolocation = new BMap.Geolocation();
+      var geoc = new BMap.Geocoder();
+      window.geoc = geoc;
+
+      var convertor = new BMap.Convertor();
+      window.convertor = convertor
+
+      if (typeof android != 'undefined') {
+        android.requestLocation();
+      } else {
+        geolocation.getCurrentPosition(
+          function(r) {
+            if (this.getStatus() == BMAP_STATUS_SUCCESS) {
+              var pt = r.point;
+              geoc.getLocation(pt, function(rs) {
+                if(rs.surroundingPois.length > 0){ // 附近的POI点，默认取第一个值
+                        if(rs.surroundingPois[0].address.length > 1){ // eg:地铁站address为' '
+                          that.address = rs.surroundingPois[0].address  + '(' + rs.surroundingPois[0].title + ')'
+                          that.location = rs.surroundingPois[0].address  + '(' + rs.surroundingPois[0].title + ')'
+                        }else{
+                          that.address = rs.surroundingPois[0].title
+                          that.location = rs.surroundingPois[0].title
+                        }
+                        
+                        that.lnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                        that.locationlnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                      }else{
+                        that.address = rs.address;
+                        that.location = rs.address;
+                        that.lnglat = rs.point.lng + ',' + rs.point.lat
+                        that.locationlnglat = rs.point.lng + ',' + rs.point.lat
+                      }
+
+              });
+            } else {
+              alert("failed" + this.getStatus());
+            }
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    },
+    // 执行Android方法获取位置信息----（高德坐标转换成百度坐标）
+        locationGDAll(location){
+          let that = this
+          let X_PI = Math.PI * 3000.0 / 180.0;
+          let x = location.longitude, y = location.latitude;
+          let z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * X_PI);
+          let theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * X_PI);
+
+          that.lnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.locationlnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.address = location.address
+          that.location = location.address
+        },
+    save() {
+      if (this.name.trim().length == 0) {
+        this.$toast("请输入姓名！");
+        return;
+      }
+      let reg = /^1[0-9]{10}$/;
+      if (this.mobile.length == 0) {
+        this.$toast("请输入电话！");
+        return;
+      } else if (this.mobile.length <= 10 || !reg.test(this.mobile)) {
+        this.$toast("电话格式错误！");
+        return;
+      }
+      var regEmail = /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+      if (this.email.trim().length != 0 && !regEmail.test(this.email)) {
+        this.$toast("邮箱格式错误！");
+        return;
+      }
+      
+      var data = {}
+      data.tag_name = this.label
+      data.tag_id = this.tag_id
+      data.name = this.name
+      data.phone = this.mobile
+      data.email = this.email
+      data.company = this.company
+      data.position = this.zhiwei
+      data.address = this.address
+      data.lnglat = this.lnglat
+      data.note = this.message
+      data.type = 2 // 1内部联系人2外部联系人
+      data.linker_id = this.linker_id
+      // console.log(data)
+      this.$api.addContact(data)
+        .then(res => {
+          this.$toast(res.errmsg);
+          if (res.errno === 0) {
+            // this.$router.go(-1);
+            this.leftBack();
+          }
+        });
+    }
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight >= this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if(from.path == "/contact"){
+      to.meta.from = "contact"
+    }else if(from.path == "/contactList"){
+        to.meta.from = "contactList"
+    }  
+    let addressSel = to.query.addressSel
+    let lnglatSel = to.query.lnglatSel
+    to.meta.addressSel = addressSel
+    to.meta.lnglatSel = lnglatSel
+    if (from.path == "/mapSearch") {
+      to.meta.isBack = true;
+    } else {
+      to.meta.isBack = false;
+    }
+    next();
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null;
+    window.convertor = null
+    window.vue = this;
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  } 
+
+
+    this.from = this.$route.meta.from
+
+    if(this.$route.meta.addressSel){
+      this.address = this.$route.meta.addressSel
+      this.lnglat = this.$route.meta.lnglatSel
+    }
+    if (!this.$route.meta.isBack) {  // 不缓存
+      // console.log("不缓存")
+      document.documentElement.scrollTop = 0
+      this.typeName = "请选择标签类型";
+      this.label = ""
+      this.typeNameArray = []
+      this.tag_id = "",
+      this.type = [],
+      this.name = "";
+      this.mobile = "";
+      this.email = "";
+      this.company = "";
+      this.zhiwei = "";
+      this.address = this.location
+      this.lnglat = this.locationlnglat
+      this.message = "";  
+
+      var id = this.$route.query.id;
+      if (this.$route.query.id) {
+        this.leftText = "编辑外部联系人";
+        this.linker_id = id;
+        this.$api.contactDetail({ linker_id: id }).then(res => {
+          if (res.errno === 0) {
+            if (res.data) {
+              this.label = res.data.tag_name;
+              this.tag_id = res.data.tag_id;
+              if (this.label) {
+                let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+                this.typeNameArray = typeNameArray
+                var typeName = "";
+                typeNameArray.forEach(ele => {
+                  typeName += ele + "、";
+                });
+              }
+              this.typeName = typeName;
+              this.name = res.data.name;
+              this.mobile = res.data.phone;
+              this.email = res.data.email;
+              this.company = res.data.company;
+              this.zhiwei = res.data.position;
+              this.address = res.data.address;
+              this.lnglat = res.data.lnglat;
+              this.message = res.data.note;
+            }
+          }
+        });
+      }
+    }
+    this.$route.meta.isBack = false;
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+};
+</script>
+<style lang="less">
+.contactAdd {
+  background: #f5f5f5;
+  min-height: calc(100% - 100px);
+  padding-top: 50px;
+  padding-bottom: 50px;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .getAddress .van-cell__title{
+    flex: 0.16;
+  }
+  .van-field__control{
+    text-overflow: ellipsis;
+  }
+  .addressCont {
+    position: relative;
+    .van-field__label{
+      width: 36px;
+    }
+    .addressIn {
+      padding-right: 96px;
+    }
+    .getLocat {
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      padding: 6px 5px;
+      border-radius: 5px;
+      background: #1C92FF;
+      color: #ffffff;
+    }
+  }
+  .van-picker {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 999;
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .van-popup {
+    width: 90%;
+    border-radius: 10px;
+    .content {
+      .imgDiv{
+        height: 36px;
+        background: rgba(0, 0, 0, 0.7);
+        img{
+          width: 70px;
+          height: 70px;
+        }
+      }
+      p {
+        text-align: right;
+        color: #aaaaaa;
+        margin-top: 15px;
+        margin-right: 15px;
+      }
+      ul {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0 15px;
+        li {
+          height: 30px;
+          padding: 0 10px;
+          font-size: 16px;
+          text-align: center;
+          line-height: 30px;
+          border-radius: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+          border: 1px solid rgba(28, 146, 255, 1);
+          background: rgba(28, 146, 255, 0.1);
+          &.active {
+            background: #1c92ff;
+            border: 1px solid #1c92ff;
+            color: #fff;
+          }
+          // &:nth-of-type(1) {
+          //   border: 1px solid rgba(28, 146, 255, 1);
+          //   background: rgba(28, 146, 255, 0.1);
+          //   &.active {
+          //     color: #1c92ff;
+          //   }
+          // }
+          // &:nth-of-type(2) {
+          //   background: rgba(255, 151, 28, 0.1);
+          //   border: 1px solid rgba(255, 151, 28, 1);
+          //   &.active {
+          //     color: #ff971c;
+          //   }
+          // }
+          // &:nth-of-type(3) {
+          //   background: rgba(28, 252, 255, 0.1);
+          //   border: 1px solid rgba(50, 209, 211, 1);
+          //   &.active {
+          //     color: #32d1d3;
+          //   }
+          // }
+          // &:nth-of-type(4) {
+          //   background: rgba(229, 206, 13, 0.1);
+          //   border: 1px solid rgba(225, 193, 34, 1);
+          //   &.active {
+          //     color: #dfbd00;
+          //   }
+          // }
+          // &:nth-of-type(5) {
+          //   background: rgba(28, 255, 172, 0.1);
+          //   border: 1px solid rgba(25, 226, 152, 1);
+          //   &.active {
+          //     color: #19e298;
+          //   }
+          // }
+        }
+      }
+      button {
+        width: 100%;
+        height: 49px;
+        border: none;
+        border-top: 1px solid #eeeeee;
+        background: #fff;
+        margin-top: 25px;
+        color: #1c92ff;
+        font-size: 16px;
+      }
+    }
+  }
+  > img {
+    width: 70px;
+    height: 70px;
+    position: fixed;
+    top: 50%;
+    margin-top: -140px;
+    left: 5%;
+    z-index: 9999;
+  }
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>

@@ -1,0 +1,303 @@
+import axios from 'axios';
+import qs from 'QS'
+
+
+
+axios.defaults.timeout = 5000;
+axios.defaults.baseURL ='http://crm.xfd365.com/user';
+// axios.defaults.baseURL ='http://www.crm.com/user';
+
+//http request 拦截器
+axios.interceptors.request.use(
+  config => {
+    // const token = getCookie('名称');注意使用的时候需要引入cookie方法，推荐js-cookie
+    const token = localStorage.getItem('token')
+    config.data = qs.stringify(config.data);
+    config.headers = {
+      'Content-Type':'application/x-www-form-urlencoded'
+    }
+    if(token){
+      config.params = {'token':token}
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(err);
+  }
+);
+
+
+//响应拦截器即异常处理
+axios.interceptors.response.use(response => {
+  return response
+}, err => {
+  if (err && err.response) {
+    switch (err.response.status) {
+      case 400: console.log('错误请求')
+        break; case 401: console.log('未授权，请重新登录')
+        break; case 403: console.log('拒绝访问')
+        break; case 404: console.log('请求错误,未找到该资源')
+        break; case 405: console.log('请求方法未允许')
+        break; case 408: console.log('请求超时')
+        break; case 500: console.log('服务器端出错')
+        break; case 501: console.log('网络未实现')
+        break; case 502: console.log('网络错误')
+        break; case 503: console.log('服务不可用')
+        break; case 504: console.log('网络超时')
+        break; case 505: console.log('http版本不支持该请求')
+        break; default: console.log(`连接错误${err.response.status}`)
+    }
+  } else {
+    console.log('连接到服务器失败')
+  }
+  return Promise.resolve(err.response)
+})
+
+//http response 拦截器
+// axios.interceptors.response.use(
+//   response => {
+//     if(response.code ==2){
+//       router.push({
+//         path:"/login",
+//         querry:{redirect:router.currentRoute.fullPath}//从哪个页面跳转
+//       })
+//     }
+//     return response;
+//   },
+//   error => {
+//     return Promise.reject(error)
+//   }
+// )
+
+
+/**
+ * 封装get方法
+ * @param url
+ * @param data
+ * @returns {Promise}
+ */
+
+export function fetch(url,params={}){
+  return new Promise((resolve,reject) => {
+    axios.get(url,{
+      params:params
+    })
+    .then(res => {
+      resolve(res.data);
+    })
+    .catch(err => {
+      reject(err)
+    })
+  })
+}
+
+
+/**
+ * 封装post请求
+ * @param url
+ * @param data
+ * @returns {Promise}
+ */
+
+ export function post(url,data = {}){
+   return new Promise((resolve,reject) => {
+     axios.post(url,data)
+          .then(res => {
+            resolve(res.data);
+          },err => {
+            reject(err)
+          })
+   })
+ }
+
+ /**
+ * 封装patch请求
+ * @param url
+ * @param data
+ * @returns {Promise}
+ */
+
+export function patch(url,data = {}){
+  return new Promise((resolve,reject) => {
+    axios.patch(url,data)
+         .then(response => {
+           resolve(response.data);
+         },err => {
+           reject(err)
+         })
+  })
+}
+
+ /**
+ * 封装put请求
+ * @param url
+ * @param data
+ * @returns {Promise}
+ */
+
+export function put(url,data = {}){
+  return new Promise((resolve,reject) => {
+    axios.put(url,data)
+         .then(response => {
+           resolve(response.data);
+         },err => {
+           reject(err)
+         })
+  })
+}
+
+
+export const server = {
+  // 登录
+  login:function(paramObj){
+    return post('/index/login',paramObj)
+  },
+  // 修改密码
+  changePass:function(paramObj){
+    return post('/user/changePass',paramObj)
+  },
+  // 新增/更新客户信息
+  stationSave:function(paramObj){
+    return post('/station/save',paramObj)
+  },
+  // 新增/更新关联客户信息
+  linkStationSave:function(paramObj){
+    return post('/station/guansave',paramObj)
+  },
+  // 客户列表
+  stationList:function(paramObj){
+    return post('/station/lists',paramObj)
+  },
+  // 关联客户列表
+  linkStationList:function(paramObj){
+    return post('/station/guanlian_detail',paramObj)
+  },
+  // 客户详情
+  stationDetail:function(paramObj){
+    return post('/station/detail',paramObj)
+  },
+  // 删除客户
+  stationDel:function(paramObj){
+    return post('/station/delete',paramObj)
+  },
+  // 客户跟进动态
+  stationGenjin:function(paramObj){
+    return post('/follow/lists',paramObj)
+  },
+  // 客户跟进
+  stationFollow:function(paramObj){
+    return post('/follow/add',paramObj)
+  },
+  // 客户跟进动态详情   暂时不用
+  // stationFollowDetail:function(paramObj){
+  //   return post('/follow/detail',paramObj)
+  // },
+  // 上传图片
+  // stationUpload:function(paramObj){
+  //   return post('/base/uploadImg',paramObj)
+  // }
+  // 个人信息
+  userInfo:function(paramObj){
+    return post('/user/user_info',paramObj)
+  },
+  // 修改个人信息
+  userUpdate:function(paramObj){
+    return post('/user/update_data',paramObj)
+  },
+  // 联系人列表
+  userList:function(paramObj){
+    return post('/user/user_lists',paramObj)
+  },
+  // 消息列表
+  messageList:function(paramObj){
+    return post('/user/message_lists',paramObj)
+  },
+  // 签到列表
+  signList:function(paramObj){
+    return post('/sign/lists',paramObj)
+  },
+  // 签到
+  signIn:function(paramObj){
+    return post('/sign/add',paramObj)
+  },
+  // 检查token
+  checkToken:function(paramObj){
+    return post('/index/checkToken',paramObj)
+  },
+  // 获取验证码
+  getCode:function(paramObj){
+    return post('/index/get_code',paramObj)
+  },
+  // 忘记密码
+  forgetPassword:function(paramObj){
+    return post('/index/forget_password',paramObj)
+  },
+  // 验证忘记密码验证码
+  checkCode:function(paramObj){
+    return post('/index/check_code',paramObj)
+  },
+  // 添加待办
+  addTask:function(paramObj){
+    return post('/task/add',paramObj)
+  },
+  // 会议列表
+  mettingLists:function(paramObj){
+    return post('/metting/lists',paramObj)
+  },
+  // 新增会议
+  mettingAdd:function(paramObj){
+    return post('/metting/add',paramObj)
+  },
+  // 会议详情
+  mettingDetail:function(paramObj){
+    return post('/index/metting_detail',paramObj)
+  },
+  // 报名
+  mettingRegAdd:function(paramObj){
+    return post('/index/metting_reg_add',paramObj)
+  },
+  // 报名成功详情
+  mettingRegDetail:function(paramObj){
+    return post('/index/metting_reg_detail',paramObj)
+  },
+  // 生成二维码
+  getQrcode:function(paramObj){
+    return post('/index/getQrcode',paramObj)
+  },
+  // 报名列表
+  mettingRegLists:function(paramObj){
+    return post('/index/metting_reg_lists',paramObj)
+  },
+  // 签到列表
+  mettingSignLists:function(paramObj){
+    return post('/index/metting_sign_lists',paramObj)
+  },
+  // 建行客户列表
+  ccbCustomerLists:function(paramObj){
+    return post('/customer/lists',paramObj)
+  },
+  // 建行客户拜访数据列表
+  ccbCustomerBaiFangLists:function(paramObj){
+    return post('/customer/customer_lists',paramObj)
+  },
+  // 建行客户拜访数据列表
+  ccbCustomerCahong:function(paramObj){
+    return post('/customer/customer_select_lists',paramObj)
+  },
+  // 建行客户详情
+  ccbCustomerDetail:function(paramObj){
+    return post('/customer/detail',paramObj)
+  },
+  // 添加联系人
+  addContact:function(paramObj){
+    return post('/tag/linker_add',paramObj)
+  },
+  // 联系人列表
+  contactList:function(paramObj){
+    return post('/tag/linker_lists',paramObj)
+  },
+  // 联系人详情
+  contactDetail:function(paramObj){
+    return post('/tag/detail',paramObj)
+  },
+}

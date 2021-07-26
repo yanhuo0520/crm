@@ -1,0 +1,785 @@
+<template>
+  <div class="trackDetail">
+    <van-nav-bar
+      :left-text="leftText"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+    />
+    <div class="searchCont" v-if="role != 1">
+      <div class="searchDiv" @click="dateShow1 = true">
+        <input type="text" placeholder="开始日期" v-model="lat_time" readonly />
+        <img src="../../images/date2.png" alt />
+      </div>
+      <div class="andLine">-</div>
+      <div class="searchDiv" @click="dateShow2 = true">
+        <input type="text" placeholder="结束日期" v-model="end_time" readonly />
+        <img src="../../images/date2.png" alt />
+      </div>
+      <div class="searchBtn" @click="search">搜索</div>
+    </div>
+    
+    <van-steps direction="vertical" inactive-icon="clock-o" :active="-1" v-if="listCont != ''">
+      <van-step v-for="(item, index) in listCont" :key="index">
+        <p class="time">{{item.add_time}}</p>
+        <!-- 考勤 -->
+        <div class="content" v-if="item.genre === 'sign'">
+            <div class="top">
+              {{userName}}<span class="status">进行了</span>
+              <!-- <span v-if="item.signtype === 1 || item.signtype === 2">考勤签到</span> -->
+              <span v-if="item.signtype === 3 || item.signtype === 4">考勤签退</span>
+              <span v-else>考勤签到</span>
+            </div>
+             <p class="note noteNolimit" v-if="item.content">{{item.content}}</p>
+            <p class="address" v-if="item.address">
+              <img src="../../images/dingwei.png" alt />{{item.address}}
+            </p>
+            <p class="address" v-if="item.pic">
+              <img src="../../images/pic.png" alt />
+              <span style="color:#1c92ff" @click="imgShow(item.pic)">查看{{(item.signtype == 1 || item.signtype == 2) ? '签到' : '签退'}}照片</span>
+            </p>
+            <p class="detailBtn" v-if="item.signtype === 1">正常签到</p>
+            <p class="overtimeBtn" v-else-if="item.signtype === 2">异常签到</p>
+            <p class="overtimeBtn" v-else-if="item.signtype === 3">异常签退</p>
+            <p class="detailBtn" v-else-if="item.signtype === 4">正常签退</p>
+            <p class="detailBtn" v-else>正常签到</p>
+        </div>
+        
+        <!-- 跟进 -->
+        <div class="content" v-if="item.genre === 'follow'">
+          <div class="top">
+            {{userName}}<span class="status">拜访/跟进了</span><span v-if="item.name">{{item.name}}</span>
+          </div>
+          <p class="note" v-if="item.content && !item.status">{{item.content}}</p>
+          <p class="detailBtn" @click="item.status = !item.status; showDetail(item)">展开详情</p>
+          <baidu-map :id="'map'+item.follow_id" @ready="initMap(item)" style="height:0">  </baidu-map>
+
+          <!-- 隐藏内容 -->
+          <div v-if="item.status">
+            <p class="detailBtn" @click="item.status = !item.status; hideDetail()">收起详情</p>
+            <ul class="genjinUl">
+              <li v-if="item.address">
+                <img src="../../images/dingwei.png" alt />{{item.address}}
+              </li>
+              <li v-if="item.type">
+                <img src="../../images/customerStatus.png" alt />{{item.typeText}}
+              </li>
+              <li v-if="item.totalDistance >= 0">
+                <img src="../../images/milage-icon.png" alt />{{item.totalDistance}}千米
+              </li>
+              <li v-if="item.lngData">
+                <img src="../../images/walking-track.png" alt />
+                <span v-if="item.lngData.length == 1" style="color:#1c92ff;">{{item.lngData[0].address}}</span>
+                <span v-if="item.lngData.length > 1">
+                    <span v-for="(subItem,subIndex) in item.lngData" :key="subIndex">
+                        <span v-if="0 < subIndex">&nbsp;&nbsp;&nbsp;&nbsp;行驶&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c66be2">{{item.lngData[subIndex].distance}}千米</span>&nbsp;&nbsp;&nbsp;&nbsp;到达&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span style="color:#1c92ff">{{subItem.address}}</span>
+                    </span>
+                </span>
+              </li>
+              <li v-if="item.content">
+                <img src="../../images/info.png" alt />{{item.content}}
+              </li>
+              <li>
+                <img src="../../images/time.png" alt />{{item.add_time}}
+              </li>
+            </ul>
+            <van-uploader v-model="item.thumbList" :preview-full-image="previewFullImage" :deletable="deletable" :show-upload="showUpload" @click-preview="clickPreview"/>
+            <div class="image-preview" v-if="ifPreview">
+              <van-image-preview
+                    v-model="ifPreview"
+                    :images="item.thumbListPre"
+                    :loop="isLoop"
+                    :startPosition = "startPosition"
+                    @change="onChange"
+                    @close="onClose()"
+                    
+                >
+                <template v-slot:index>{{pageIn}} / {{totalPage}}</template>
+                <div slot="cover" class="color-high">
+                  <van-icon name="down" class="down-img" @click="downLoadHandle"/>
+                </div>
+              </van-image-preview>
+            </div>
+
+          </div>
+          
+        </div>
+
+
+        <!-- 日报/周报 -->
+        <div class="content" v-if="item.genre === 'report'">
+          <div class="top">
+              {{userName}}<span class="status">上传了</span>{{item.reportName}}
+            </div>
+          <p class="detailBtn"  @click="item.status = !item.status; showDetail(item)">展开详情</p>
+          <!-- 隐藏内容 -->
+          <div v-if="item.status">
+            <p class="detailBtn"  @click="item.status = !item.status; hideDetail()">收起详情</p>
+            <ul class="dailyUl">
+              <li>
+                <span>{{item.station}}</span>
+                <span>新增客户</span>
+              </li>
+              <li>
+                <span>{{item.follow}}</span>
+                <span>跟进客户</span>
+              </li>
+              <li>
+                <span>{{item.bai_follow}}</span>
+                <span>拜访客户</span>
+              </li>
+              <li>
+                <span>{{item.zong}}</span>
+                <span>管理客户</span>
+              </li>
+            </ul>
+            <div class="summaryCont">
+                <p class="title" v-if="item.reportName === '日报'"><img src="http://sc.xfd365.com/crmImages/beizhu.png" alt />今日总结</p>
+                <p class="title" v-else><img src="http://sc.xfd365.com/crmImages/beizhu.png" alt />本周总结</p>
+                <p class="desc">{{item.now_summary}}</p>
+            </div>
+            <!-- <van-uploader v-model="item.thumbList" /> -->
+            <van-uploader v-model="item.thumbList" :preview-full-image="previewFullImage" :deletable="deletable" :show-upload="showUpload" @click-preview="clickPreview"/>
+            <div class="image-preview" v-if="ifPreview">
+              <van-image-preview
+                    v-model="ifPreview"
+                    :images="item.thumbListPre"
+                    :loop="isLoop"
+                    :startPosition = "startPosition"
+                    @change="onChange"
+                    @close="onClose()"
+                >
+                <template v-slot:index>{{pageIn}} / {{totalPage}}</template>
+                <div slot="cover" class="color-high">
+                  <van-icon name="down" class="down-img" @click="downLoadHandle"/>
+                </div>
+              </van-image-preview>
+            </div>
+
+          </div>
+        </div>
+      </van-step>
+    </van-steps>
+
+    
+    <div v-if="(!listCont || listCont.length == 0) && !isLoading && !isErr" class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+      <!-- <span>暂无<span class="tip">"{{lat_time}}-{{end_time}}"</span>的轨迹</span> -->
+    </div>
+    <div class="no-data-con" v-if="isErr">
+      <div class="no-data-mask">
+         <div class="no-data-box"> 
+            <van-empty  image="error" description="服务异常，请稍后重试！">
+              <van-button round type="danger" size="small" class="bottom-button" @click="getList()"> 刷新</van-button>
+            </van-empty>
+         </div>
+      </div>
+    </div>
+      <van-overlay :show="dateShow1" @click="closeDateTime1" />
+      <van-datetime-picker
+        v-model="currentDate1"
+        type="date"
+        :min-date="minDate1"
+        :max-date="maxDate1"
+        v-show="dateShow1"
+        @confirm="handleTime1"
+        @cancel="closeDateTime1"
+      />
+
+    <van-overlay :show="dateShow2" @click="closeDateTime2" />
+      <van-datetime-picker
+        v-model="currentDate2"
+        type="date"
+        :min-date="minDate2"
+        :max-date="maxDate2"
+        v-show="dateShow2"
+        @confirm="handleTime2"
+        @cancel="closeDateTime2"
+      />
+  </div>
+</template>
+<script>
+import { Dialog } from 'vant';
+import { ImagePreview } from 'vant';
+import BaiduMap from 'vue-baidu-map/components/map/Map.vue'
+export default {
+  name: "trackDetail",
+  data() {
+    return {
+      role: localStorage.getItem("role"),
+      leftText: "黎明的轨迹",
+      user_id: '',
+      userName: '',
+
+      lat_time: '',
+      currentDate1: new Date(),
+      minDate1: new Date(2020, 0, 1),
+      maxDate1: new Date(),
+      dateShow1: false,
+
+      end_time: '',
+      currentDate2: new Date(),
+      minDate2: new Date(2020, 0, 1),
+      maxDate2: new Date(),
+      dateShow2: false,
+      
+      listCont: [],
+      isLoading: false,
+      isErr: false,
+
+      fileList: [],
+
+      previewFullImage: false, // 是否在点击预览图后展示全屏图片预览
+      deletable: false, // 是否展示删除按钮
+      showUpload: false, // 是否展示上传区域
+      isLoop: true,
+      ifPreview: false,
+      prrviewList: [],
+      downUrl: '',
+      startPosition: 1,
+      pageIn: 1,
+      totalPage: 0,
+      imagePreviewCover: ''
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+	
+    this.lat_time = this.$route.query.lat_time;
+    this.end_time = this.$route.query.end_time;
+    this.user_id = this.$route.query.user_id;
+    this.userName = this.$route.query.user_name
+    this.leftText = this.userName + "的轨迹";
+    this.getList()
+
+  },
+  methods: {
+    // 查看完整图片
+    imgShow(url) {
+      let that = this
+      this.imagePreviewCover = ImagePreview({
+        images: [url],
+        asyncClose: true,
+        closeable: true,
+      });
+      this.$nextTick(() =>{
+          document.querySelector('.van-image-preview__close-icon--top-right').addEventListener('click', function(e) {  
+            e.stopPropagation();//取消事件冒泡
+            that.imagePreviewCover.close();
+          })
+      })
+    },
+    
+    leftBack(){
+      if(this.imagePreviewCover) {
+        this.imagePreviewCover.close();
+      }
+      this.$router.go(-1)
+    },
+    handleTime1(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" + 
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" + 
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+
+      let usedTime = Date.parse(new Date(this.end_time)) - Date.parse(new Date(datetime)); // 两个时间戳相差的毫秒数
+  	  let days = Math.floor(usedTime / (24 * 3600 * 1000)); // 计算相差的天数
+
+      if(datetime > this.end_time && this.end_time){
+        this.$toast("开始时间大于结束时间")
+        return
+      }else if(days > 31){
+        this.$toast("选择时间范围不能超过31天")
+        return
+      }
+      this.currentDate1 = datetime;
+      this.lat_time = datetime;
+      this.dateShow1 = false
+    },
+    closeDateTime1(){
+      this.dateShow1 = false
+      this.currentDate1 = new Date()
+    },
+    handleTime2(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" + 
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" + 
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+        
+        let usedTime = Date.parse(new Date(datetime)) - Date.parse(new Date(this.lat_time)); // 两个时间戳相差的毫秒数
+  	    let days = Math.floor(usedTime / (24 * 3600 * 1000)); // 计算相差的天数
+
+        if(datetime < this.lat_time && this.lat_time){
+          this.$toast("结束时间小于开始时间")
+          return
+        }else if(days > 31){
+          this.$toast("选择时间范围不能超过31天")
+          return
+        }
+      this.currentDate2 = datetime;
+      this.end_time = datetime;
+      this.dateShow2 = false
+    },
+    closeDateTime2(){
+      this.dateShow2 = false
+      this.currentDate2 = new Date()
+    },
+
+    search() {
+      this.getList()
+    },
+    getList(){
+      let data={}
+      this.listCont = []
+      if(this.isLoading) return
+      this.isLoading = true
+      this.isErr = false
+      data.lat_time = this.lat_time
+      data.end_time = this.end_time
+      data.user_id = this.user_id
+      // console.log(data)
+      this.$toast.loading({
+        message: '加载中...',
+        forbidClick: true,
+        duration: 0,
+      });
+      this.$api.reportLogList(data).then(res=>{
+        this.isErr = false
+         this.isLoading = false
+        this.$toast.clear()
+        if(res.errno === 0){
+          this.listCont = res.data
+          if(this.listCont){
+            this.listCont.forEach(ele => {
+              if(ele.type){
+                if(ele.type === 1){
+                  ele.typeText = "到访"
+                }else if(ele.type === 2){
+                  ele.typeText = "电话"
+                }else if(ele.type === 3){
+                  ele.typeText = "微信"
+                }else if(ele.type === 4){
+                  ele.typeText = "短信"
+                }else{
+                  ele.typeText = "到访"
+                }
+              }
+
+              if(ele.pic){
+                var pics = ele.pic;
+                pics = pics.split("#");
+                var r = pics.filter(function(s) {
+                  return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+                });
+                ele.thumbListPre = r
+                // console.log(r)
+                r = r.map((item, index) => ({ url: item, index: index}));
+                ele.thumbList = JSON.parse(JSON.stringify(r));
+              }
+
+            });
+          }
+          
+        }
+      }).catch(err =>{
+        this.isErr = true
+         this.isLoading = false
+         this.$toast.clear()
+      })
+    },
+    // 初始化地图
+    initMap(item) {
+      if(item.map) {
+        item.map.clearOverlays(); 
+      }
+      let map = new BMap.Map("map"+item.follow_id);
+      item.map = map
+    },
+    // 展开详情
+    showDetail(item){
+      if(item.thumbList && item.thumbList.length > 0) {
+        this.prrviewList = item.thumbList
+        this.totalPage = item.thumbList.length
+      } else {
+          this.prrviewList = []
+          this.totalPage = 0
+      }
+      if(item.genre == 'follow') {
+        // setTimeout(() =>{
+          if(item.lngData && item.lngData.length >= 0) {
+            let map = item.map;
+              for(let i = 0; i < item.lngData.length; i++) {
+                let subItem = item.lngData[i]
+                subItem.distance = 0
+                  if(i > 0) {
+                    let curPoint = new BMap.Point(subItem.lng, subItem.lat);
+                    let lastPoint = new BMap.Point(item.lngData[i-1].lng, item.lngData[i-1].lat);
+                    this.driving(lastPoint,curPoint,item,i,map)
+                  }
+              }
+              setTimeout(() =>{
+                item.totalDistance = 0
+                  for(let i = 0; i < item.lngData.length; i++) {
+                    item.totalDistance += item.lngData[i].distance
+                  }
+                 setTimeout(() =>{
+                    this.$forceUpdate()
+                 },500)
+              },1000)
+          }
+        // },2000)
+      
+      }
+    },
+    // 当未跟进时 计算路线距离
+    driving(po1,po2,item,subIndex,map){
+      let driving = new BMap.DrivingRoute(map, {
+          renderOptions: {    
+              map : map,   
+          } ,
+          onSearchComplete: function(results){
+              if (driving.getStatus() == BMAP_STATUS_SUCCESS){    
+                  // 获取第一条方案   
+                  var plan = results.getPlan(0);
+                  // console.log(plan.getDistance(false))
+                  var distance = Math.round( plan.getDistance(false)/1000 );  
+                  item.lngData[subIndex].distance = distance
+              }    
+          },
+      }); 
+      driving.search(po1,po2);
+  },
+    hideDetail(){
+      this.prrviewList = []
+      this.totalPage = 0
+    },
+    clickPreview(file, detail){
+      this.downUrl = file.url
+      this.startPosition = detail.index
+      this.pageIn = detail.index + 1
+      this.ifPreview = true
+    },
+    onChange(index){
+      this.downUrl = this.prrviewList[index].url
+      this.pageIn = index + 1
+    },
+    onClose(index, url) {
+      this.downUrl = '';
+      this.ifPreview = false
+    },
+    downLoadHandle(){
+      // console.log(this.downUrl)
+      if(typeof android != 'undefined'){
+        android.saveToPhone(this.downUrl); // 调用Android方法保存图片到手机相册
+        this.$toast({
+          message: '保存成功',
+          icon: 'success'
+        })
+      }else{
+        var alink = document.createElement("a");
+        var event = new MouseEvent('click')  
+        alink.href = this.downUrl;
+        alink.download = "pic"; //图片名
+        alink.dispatchEvent(event);
+      }
+    }
+
+
+  }
+};
+</script>
+<style lang="less">
+.trackDetail {
+  min-height: calc(100% - 60px);
+  padding-top: 50px;
+  padding-bottom: 10px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    z-index: 9;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+    .van-nav-bar__right img {
+      width: 18px;
+    }
+  }
+  .searchCont{
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    .andLine{
+      margin: 10px 5px 0 5px;
+    }
+    .searchBtn{
+      margin-left: 10px;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ffffff;
+      width: 70px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      border-radius: 30px;
+      background: #1c92ff;
+    }
+  }
+  .searchDiv {
+    display: flex;
+    position: relative;
+    padding-top: 10px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding-left: 10px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #AAAAAA;
+    }
+    ::-webkit-input-placeholder {
+      color: #AAAAAA;
+    }
+    img {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 14px;
+      padding: 12px 0;
+    }
+  }
+  .van-image-preview__cover{
+    width: 48px;
+    height: 48px;
+    text-align: center;
+    line-height: 54px;
+    bottom: 12% !important;
+    left: calc(50% - 24px) !important;
+    top: auto;
+    font-size: 24px;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 50%;
+  }
+  .van-overlay{
+    z-index: 10;
+  }
+  .van-picker {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 999;
+    }
+  .van-step--vertical .van-step__circle-container{
+    font-size: 15px;
+    top: 20px;
+  }
+  .van-step--vertical:not(:last-child)::after{
+    border-bottom-width: 0
+  }
+  .van-steps {
+    background: #f5f5f5;
+    .time {
+      color: #aaaaaa;
+    }
+    .content {
+      margin-top: 5px;
+      padding: 15px 0 25px 0;
+      border-radius: 8px;
+      border-top-left-radius: 0;
+      background: #ffffff;
+      position: relative;
+    }
+    .top {
+      padding: 0 10px;
+      color: #444444;
+      span.status {
+        color: #1c92ff;
+        background: rgba(28, 146, 255, 0.1);
+        border: 1px solid rgba(28, 146, 255, 1);
+        border-radius: 20px;
+        padding: 2px 8px;
+        margin: 0 20px;
+        position: relative;
+        &::before {
+          position: absolute;
+          left: -15px;
+          top: 10px;
+          width: 15px;
+          height: 2px;
+          content: " ";
+          background: url("../../images/track_bgl.png") no-repeat left;
+        }
+        &::after {
+          position: absolute;
+          right: -15px;
+          top: 10px;
+          width: 15px;
+          height: 2px;
+          content: " ";
+          background: url("../../images/track_bgr.png") no-repeat right;
+        }
+      }
+    }
+    .note {
+      padding: 0 10px;
+      margin-top: 10px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      &.noteNolimit{
+        white-space: normal;
+      }
+    }
+    .address {
+      margin-top: 8px;
+      position: relative;
+      padding-left: 30px;
+      padding-right: 10px;
+      img {
+        position: absolute;
+        left: 10px;
+        top: 2px;
+        height: 14px;
+      }
+    }
+    .overtimeBtn,
+    .detailBtn {
+      position: absolute;
+      right: 15px;
+      bottom: -11px;
+      padding: 4px 15px;
+      color: #ffffff;
+      border-radius: 30px;
+    }
+    .overtimeBtn {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 86, 135, 1) 0%,
+        rgba(255, 92, 103, 1) 100%
+      );
+    }
+    .detailBtn {
+      background: linear-gradient(
+        90deg,
+        rgba(14, 110, 240, 1) 0%,
+        rgba(28, 146, 255, 1) 100%
+      );
+    }
+    .genjinUl {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eeeeee;
+        li {
+          margin-top: 5px;
+          position: relative;
+          padding-left: 32px;
+          padding-right: 10px;
+          img {
+            position: absolute;
+            left: 10px;
+            top: 0;
+            height: 16px;
+          }
+        }
+      }
+      .dailyUl {
+        border-top: 1px solid #eeeeee;
+        margin-top: 10px;
+        padding-top: 5px;
+        display: flex;
+        justify-content: left;
+        flex-wrap: wrap;
+        li {
+          width: 25%;
+          padding: 5px 0;
+          text-align: center;
+        }
+        span {
+          display: block;
+          line-height: 20px;
+          font-size: 12px;
+          color: #444444;
+          &:first-child {
+            color: #1C92FF;
+            font-size: 15px;
+          }
+        }
+      }
+    .van-uploader {
+      margin-left: 10px;
+      margin-top: 10px;
+    }
+    .van-uploader__upload,
+    .van-uploader__preview-image {
+      width: 56px;
+      height: 56px;
+      border-radius: 0;
+    }
+    
+    .summaryCont{
+        margin-top: 5px;
+        padding: 10px 10px 0 10px;
+        border-top: 1px solid #eeeeee;
+        .title{
+            color: #444444;
+        }
+        .desc{
+            margin-top: 5px;
+        }
+        img{
+            height: 14px;
+            margin-right: 5px;
+        }
+    }
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+    .tip{
+      color: red;
+    }
+  }
+  .no-data-con {
+    position: fixed;
+    top: 95px;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    .no-data-mask {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      .no-data-box {
+        width: 80%;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+
+      }
+    }
+  }
+}
+</style>

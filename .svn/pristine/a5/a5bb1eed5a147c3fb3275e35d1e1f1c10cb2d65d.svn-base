@@ -1,0 +1,463 @@
+<template>
+  <div class="siteStatiseAdd">
+    <van-nav-bar left-text="站点统计详情" left-arrow @click-left="$router.go(-1)" />
+    <van-tabs v-model="active">
+      <van-tab title="基本情况">
+        <div class="marBottom">
+          <van-field
+            placeholder="请输入站长姓名"
+            label="站长姓名"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/name.png"
+            input-align="right"
+            v-model="tab1Name"
+          />
+          <van-field
+            placeholder="请输入签约手机号"
+            type="tel"
+            label="签约手机号"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/phone.png"
+            input-align="right"
+            v-model="tab1Mobile"
+          />
+          <van-field
+            placeholder="请输入身份证号"
+            type="tel"
+            label="身份证号"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/card.png"
+            input-align="right"
+            v-model="tab1Card"
+          />
+        </div>
+        <div class="marBottom">
+          <van-field
+            placeholder="请输入民族"
+            label="民族"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/nation.png"
+            input-align="right"
+            v-model="tab1Nation"
+          />
+          <van-field
+            placeholder="请选择性别"
+            label="性别"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/sex.png"
+            input-align="right"
+            v-model="tab1Sex"
+          />
+          <van-field
+            placeholder="请选择出生年月"
+            label="出生年月"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/birthday.png"
+            input-align="right"
+            v-model="tab1Birthday"
+          />
+          <van-field
+            placeholder="请选择教育程度"
+            label="教育程度"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/education.png"
+            input-align="right"
+            v-model="tab1Educatione"
+          />
+        </div>
+        <div class="marBottom">
+          <van-field
+            placeholder="请输入微信号"
+            label="微信号"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/wechat.png"
+            input-align="right"
+            v-model="tab1Wechat"
+          />
+          <van-field
+            placeholder="请输入住宅电话"
+            type="tel"
+            label="住宅电话"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/zuoji.png"
+            input-align="right"
+            v-model="tab1Telphone"
+          />
+          <van-field
+            placeholder="请输入邮政编码"
+            type="tel"
+            label="邮政编码"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/youbian.png"
+            input-align="right"
+            v-model="tab1Youbian"
+          />
+          <van-field
+            placeholder="请选择邮寄地址"
+            label="邮寄地址"
+            class="label4"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+            input-align="right"
+            v-model="tab1Region"
+          />
+        </div>
+        <van-field
+          placeholder="请选择婚姻状况"
+          label="婚姻状况"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/marriage.png"
+          input-align="right"
+          v-model="tab1Marriage"
+        />
+        <van-field
+          placeholder="请输入配偶姓名"
+          label="配偶姓名"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/name.png"
+          input-align="right"
+          v-model="tab1SpouseName"
+        />
+        <van-field
+          placeholder="请输入配偶联系方式"
+          type="tel"
+          label="配偶联系方式"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/phone.png"
+          input-align="right"
+          v-model="tab1SpousMobile"
+        />
+        <van-field
+          placeholder="请输入配偶身份证号"
+          type="tel"
+          label="配偶身份证号"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/card.png"
+          input-align="right"
+          v-model="tab1SpousCard"
+        />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="站点情况">
+        <van-field
+          placeholder="请输入营业执照名称"
+          label="营业执照名称"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/business.png"
+          input-align="right"
+          v-model="tab2BusName"
+        />
+        <van-cell title="上传营业执照" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+        <van-uploader v-model="tab2BusPicList" />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="经营情况">
+        <van-field
+          placeholder="请选择经营主体"
+          label="经营主体"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/busentity.png"
+          input-align="right"
+          v-model="tab3Busentity"
+        />
+        <van-field
+          placeholder="请输入经营场所名称"
+          label="经营场所名称"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/busname.png"
+          input-align="right"
+          v-model="tab3BusName"
+        />
+        <van-field
+          placeholder="请输入经营面积"
+          label="经营面积"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/busarea.png"
+          input-align="right"
+          v-model="tab3BusArea"
+        />
+        <van-field
+          placeholder="请选择年交易额"
+          label="年交易额"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/busmoney.png"
+          input-align="right"
+          v-model="tab3BusMoney"
+        />
+        <van-field
+          placeholder="请选择从业人数"
+          label="从业人数"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/busnumber.png"
+          input-align="right"
+          v-model="tab3BusNumber"
+        />
+
+        <van-field
+          placeholder="请选择经营地址"
+          label="经营地址"
+          class="label4"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+          input-align="right"
+          v-model="tab3BusRegion"
+        />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="使用情况" class="nav-tab4">
+        <van-field
+          placeholder="请选择持有数量"
+          label="持有信用卡数量"
+          class="label7"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/cardnumber.png"
+          input-align="right"
+          v-model="tab4CardNumber"
+        />
+        <van-field
+          placeholder="请选择贷款情况"
+          label="贷款情况"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/loan.png"
+          input-align="right"
+          v-model="tab4Loan"
+        />
+        <van-field
+          placeholder="请选择常用收款方式"
+          label="常用收款方式"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/payment.png"
+          input-align="right"
+          v-model="tab4Payment"
+        />
+        <van-field
+          placeholder="请选择银行数量"
+          label="站点合作银行数量"
+          class="label8"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/hebanknum.png"
+          input-align="right"
+          v-model="tab4BankNum"
+        />
+        <van-field
+          placeholder="请选择银行名称"
+          label="合作银行名称"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/firstBank.png"
+          input-align="right"
+          v-model="tab4BankName"
+        />
+        <van-field
+          placeholder="请选择网点数量"
+          label="1公里内银行网点数量"
+          class="label9"
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/nearybank.png"
+          input-align="right"
+          v-model="tab4NearNum"
+        />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+    </van-tabs>
+  </div>
+</template>
+<script>
+export default {
+  name: "siteStatiseAdd",
+  data() {
+    return {
+      active: "基本情况",
+      tab1Name: "",
+      tab1Mobile: "",
+      tab1Card: "",
+      tab1Nation: "",
+      tab1Sex: "",
+      tab1Birthday: "",
+      tab1Educatione: "",
+      tab1Wechat: "",
+      tab1Telphone: "",
+      tab1Youbian: "",
+      tab1Region: "",
+      tab1Marriage: "",
+      tab1SpouseName: "",
+      tab1SpousMobile: "",
+      tab1SpousCard: "",
+
+      tab2BusName: "",
+      tab2BusPicList: [],
+      tab2BusPics: "",
+
+      tab3Busentity: "",
+      tab3BusName: "",
+      tab3BusArea: "",
+      tab3BusMoney: "",
+      tab3BusNumber: "",
+      tab3BusRegion: "",
+
+      tab4CardNumber: "",
+      tab4Loan: "",
+      tab4Payment: "",
+      tab4BankNum: "",
+      tab4BankName: "",
+      tab4NearNum: "",
+
+      userName: "",
+      currentDateNow: ""
+    };
+  },
+  mounted() {
+    document.documentElement.scrollTop = 0;
+    this.userName = localStorage.getItem("userName");
+    var id = this.$route.query.id;
+    if (this.$route.query.id) {
+      this.$api.siteStatiseDetail({ site_id: id }).then(res => {
+        console;
+        if (res.errno === 0) {
+          if (res.data) {
+            this.tab1Name = res.data.site_name;
+            this.tab1Mobile = res.data.sign_phone;
+            this.tab1Card = res.data.idcard ? res.data.idcard : '无';
+            this.tab1Nation = res.data.nation ? res.data.nation : '无';
+            this.tab1Sex = res.data.sex ? res.data.sex : '无';
+            this.tab1Birthday = res.data.date_of_birth ? res.data.date_of_birth : '无';
+            this.tab1Educatione = res.data.edu ? res.data.edu : '无';
+            this.tab1Wechat = res.data.wx_mobile ? res.data.wx_mobile : '无';
+            this.tab1Telphone = res.data.address_phone ? res.data.address_phone : '无';
+            this.tab1Youbian = res.data.postal_code ? res.data.postal_code : '无';
+            let you_address = res.data.you_address;
+            if (you_address) {
+              if (you_address.indexOf("/") == -1) {
+                // 不包含/
+                this.tab1Addtail = you_address;
+              } else {
+                let addArr = you_address
+                  .substr(0, you_address.length)
+                  .split("/");
+                addArr.forEach(ele => {
+                  this.tab1Region += ele;
+                });
+              }
+            }else{
+              this.tab1Region = "无";
+            }
+            this.tab1Marriage = res.data.marital ? res.data.marital : '无';
+            this.tab1SpouseName = res.data.spouse_name ? res.data.spouse_name : '无';
+            this.tab1SpousMobile = res.data.spouse_phone ? res.data.spouse_phone : '无';
+            this.tab1SpousCard = res.data.spouse_idcard ? res.data.spouse_idcard : '无';
+            this.tab2BusName = res.data.business_name ? res.data.business_name : '无';
+            this.tab2BusPics = res.data.business_pic;
+            if (this.tab2BusPics) {
+              var pics = this.tab2BusPics;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({ url: item }));
+              this.tab2BusPicList = JSON.parse(JSON.stringify(r));
+            } else {
+              this.tab2BusPics = "";
+              this.tab2BusPicList = [];
+            }
+            this.tab3Busentity = res.data.business ? res.data.business : '无';
+            this.tab3BusName = res.data.business_site_name ? res.data.business_site_name : '无';
+            this.tab3BusArea = res.data.business_size ? res.data.business_size : '无';
+            this.tab3BusMoney = res.data.year_amount ? res.data.year_amount : '无';
+            this.tab3BusNumber = res.data.the_num ? res.data.the_num : '无';
+            let business_address = res.data.business_address;
+            if (business_address) {
+              if (business_address.indexOf("/") == -1) {
+                // 不包含/
+                this.tab3BusRegion = business_address;
+              } else {
+                let addArr = business_address
+                  .substr(0, business_address.length)
+                  .split("/");
+                addArr.forEach(ele => {
+                  this.tab3BusRegion += ele;
+                });
+              }
+            }else{
+              this.tab3BusRegion = '无'
+            }
+
+            this.tab4CardNumber = res.data.hold_card ? res.data.hold_card : '无';
+            this.tab4Loan = res.data.loans ? res.data.loans : '无';
+            this.tab4Payment = res.data.payment_term ? res.data.payment_term : '无';
+            this.tab4BankNum = res.data.site_he_bank ? res.data.site_he_bank : '无';
+            this.tab4BankName = res.data.site_he_bankname ? res.data.site_he_bankname : '无';
+            this.tab4NearNum = res.data.one_bane ? res.data.one_bane : '无';
+            this.currentDateNow = res.data.add_time.substr(0, 10)
+          }
+        }
+      });
+    }
+  },
+  methods: {}
+};
+</script>
+<style lang="less">
+.siteStatiseAdd {
+  min-height: 100%;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .van-tabs__line {
+    background-color: #1c92ff;
+  }
+  .van-uploader {
+    background: #ffffff;
+    padding: 10px;
+    width: 100%;
+  }
+  .van-uploader__upload {
+    display: none;
+  }
+  .bottomTip {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px;
+    color: #aaaaaa;
+    background: #f5f5f5;
+    font-size: 14px;
+    line-height: 32px;
+  }
+  .marBottom {
+    margin-bottom: 10px;
+  }
+  .label4 .van-field__label {
+    width: 60px;
+  }
+  .label7 .van-field__label {
+    width: 100px;
+  }
+  .label8 .van-field__label {
+    width: 116px;
+  }
+  .label9 .van-field__label {
+    width: 136px;
+  }
+}
+</style>

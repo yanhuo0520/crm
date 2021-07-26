@@ -1,0 +1,318 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import index from '@/pages/index'
+import customer from '@/pages/customer/index'
+import customerGenjin from '@/pages/customer/genjin'
+import addCustomer from '@/pages/customer/addCustomer'
+import addGlCustomer from '@/pages/customer/addGlCustomer'
+import customerDetail from '@/pages/customer/customerDetail'
+import genjinRecord from '@/pages/genjinRecord'
+import contact from '@/pages/contact/index'
+import contactList from '@/pages/contact/contactList'
+import contactAdd from '@/pages/contact/contactAdd'
+import contactSearch from '@/pages/contact/contactSearch'
+import statisticalForm from '@/pages/statisticalForm'
+import work from '@/pages/work'
+import msg from '@/pages/msg/index'
+import msgDetail from '@/pages/msg/msgDetail'
+import ucenter from '@/pages/ucenter/index'
+import sign from '@/pages/ucenter/sign'
+import myCustomer from '@/pages/ucenter/customer'
+import perInfo from '@/pages/ucenter/info'
+import changePass from '@/pages/ucenter/changepass'
+import login from '@/pages/login'
+import forgetPass from '@/pages/forgetPass'
+import search from '@/pages/search'
+import daiban from '@/pages/daiban'
+import meeting from '@/pages/meeting/index'
+import addMeeting from '@/pages/meeting/addMeeting'
+import addSuccess from '@/pages/meeting/addSuccess'
+import signUp from '@/pages/meeting/signUp'
+import mettingRegLists from '@/pages/meeting/mettingRegLists'
+import mettingSignLists from '@/pages/meeting/mettingSignLists'
+import mapSearch from '@/pages/mapSearch'
+import ccbCustomer from '@/pages/ccbCustomer/index'
+import ccbCustomerDetail from '@/pages/ccbCustomer/ccbCustomerDetail'
+import ccbSearch from '@/pages/ccbSearch'
+import genjinSel from '@/pages/genjinSel'
+import contactCcbSel from '@/pages/contactCcbSel'
+import dupliCheck from '@/pages/dupliCheck'
+import nearBy from '@/pages/nearBy/index'
+import siteStatise from '@/pages/siteStatise/index'
+import siteStatiseSearch from '@/pages/siteStatise/siteStatiseSearch'
+import siteStatiseAdd from '@/pages/siteStatise/siteStatiseAdd' 
+import siteStatiseDetail from '@/pages/siteStatise/siteStatiseDetail'
+
+
+Vue.use(Router)
+
+export default new Router({
+  routes: [
+    {
+      path: '/',
+      name: 'index',
+      component: index,
+      meta: {
+        keepAlive: false // 不需要被缓存
+      }
+    },
+    {
+      path: '/customer',
+      name: '客户管理',
+      component: customer,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/customerGenjin',
+      name: '客户跟进',
+      component: customerGenjin
+    },
+    {
+      path: '/addCustomer',
+      name: '添加客户',
+      component: addCustomer,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        linker_id: '',
+        linker_name: '',
+        from_id: '',
+        ifDetail: ''
+      }
+    },
+    {
+      path: '/addGlCustomer',
+      name: '新增关联客户',
+      component: addGlCustomer
+    },
+    {
+      path: '/customerDetail',
+      name: '客户详情',
+      component: customerDetail
+    },
+    {
+      path: '/genjinRecord',
+      name: '跟进记录',
+      component: genjinRecord
+    },
+    {
+      path: '/contact',
+      name: '联系人',
+      component: contact
+    },
+    {
+      path: '/contactList',
+      name: '联系人列表',
+      component: contactList,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        type: ''
+      }
+    },
+    {
+      path: '/contactAdd',
+      name: '新增联系人',
+      component: contactAdd   
+    },
+    {
+      path: '/contactSearch',
+      name: '联系人搜索',
+      component: contactSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        type: '',
+        keyword: '',
+      }
+    },
+    {
+      path: '/statisticalForm',
+      name: '统计报表',
+      component: statisticalForm
+    },
+    {
+      path: '/work',
+      name: '办公',
+      component: work
+    },
+    {
+      path: '/msg',
+      name: '消息',
+      component: msg
+    },
+    {
+      path: '/msgDetail',
+      name: '消息详情',
+      component: msgDetail
+    },
+    {
+      path: '/ucenter',
+      name: '我的',
+      component: ucenter
+    },
+    {
+      path: '/sign',
+      name: '我的签到',
+      component: sign
+    },
+    {
+      path: '/myCustomer',
+      name: '我的客户',
+      component: myCustomer
+    },
+    {
+      path: '/perInfo',
+      name: '我的资料',
+      component: perInfo
+    },
+    {
+      path: '/changePass',
+      name: '修改密码',
+      component: changePass
+    },
+    {
+      path: '/login',
+      name: '登录',
+      component: login
+    },
+    {
+      path: '/forgetPass',
+      name: '忘记密码',
+      component: forgetPass
+    },
+    {
+      path: '/search',
+      name: '搜索',
+      component: search,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/daiban',
+      name: '待办',
+      component: daiban
+    },
+    {
+      path: '/meeting',
+      name: '会议管理',
+      component: meeting,
+    },
+    {
+      path: '/addMeeting',
+      name: '添加会议',
+      component: addMeeting
+    },
+    {
+      path: '/addSuccess',
+      name: '添加成功',
+      component: addSuccess
+    },
+    {
+      path: '/signUp',
+      name: '报名成功',
+      component: signUp
+    },
+    {
+      path: '/mettingRegLists',
+      name: '报名列表',
+      component: mettingRegLists
+    },
+    {
+      path: '/mettingSignLists',
+      name: '签到列表',
+      component: mettingSignLists
+    },
+    {
+      path: '/mapSearch',
+      name: '地点微调',
+      component: mapSearch
+    },
+    {
+      path: '/ccbCustomer',
+      name: '建行客户',
+      component: ccbCustomer,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/ccbCustomerDetail',
+      name: '建行客户详情',
+      component: ccbCustomerDetail
+    },
+    {
+      path: '/ccbSearch',
+      name: '建行客户搜索',
+      component: ccbSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/genjinSel',
+      name: '手动选择跟进客户',
+      component: genjinSel,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        customer_id: '',
+        customerName: ''
+      }
+    },
+    {
+      path: '/contactCcbSel',
+      name: '建行客户选择',
+      component: contactCcbSel
+    },
+    {
+      path: '/dupliCheck',
+      name: '查重',
+      component: dupliCheck
+    },
+    {
+      path: '/nearBy',
+      name: '附近客户',
+      component: nearBy
+    },
+    {
+      path: '/siteStatiseSearch',
+      name: '站点统计搜索',
+      component: siteStatiseSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/siteStatise',
+      name: '站点统计',
+      component: siteStatise,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/siteStatiseAdd',
+      name: '站点统计增加',
+      component: siteStatiseAdd
+    },
+    {
+      path: '/siteStatiseDetail',
+      name: '站点统计详情',
+      component: siteStatiseDetail
+    },
+    
+  ]
+})

@@ -1,0 +1,181 @@
+<template>
+  <div class="kehu">
+    <van-nav-bar left-text="我的客户" left-arrow fixed @click-left="leftBack" />
+    <div class="topRight">
+      <img class="addBtn" src="../../images/addcom.png" alt />
+    </div>
+
+    <div class="kehuCont">
+      <van-index-bar
+        :index-list="indexList"
+        :sticky-offset-top="stickyOffsetTop"
+      >
+        <div v-for="(item, index) in userData" :key="index">
+          <van-index-anchor :index="index">{{ index }}</van-index-anchor>
+          <div class="content" v-for="(item1, index1) in item" :key="index1">
+            <div class="top">
+              <p class="name">{{item1.name}}</p>
+              <a :href="'tel:' + item1.phone" class="phone">
+                <img src="../../images/tel.png" alt />
+              </a>
+            </div>
+            <ul class="tipCont">
+              <li>标签1</li>
+            </ul>
+            <p class="address">地址</p>
+          </div>
+        </div>
+      </van-index-bar>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "kehu",
+  data() {
+    return {
+      stickyOffsetTop: 50,
+      indexList: [],
+      userData: [],
+    };
+  },
+  mounted() {
+    this.getList();
+  },
+  methods: {
+    leftBack() {
+      // this.$router.go(-1)
+      this.$router.push({
+        path: "/",
+      });
+    },
+    // 新增客户--增加客户
+    addCustomerBtn() {
+      localStorage.setItem("station_id", "");
+      this.$router.push({
+        path: "/addCustomer",
+        query: {
+          cls: this.cls,
+        },
+      });
+    },
+    getList() {
+      let that = this;
+      this.$api.contactList({ type: 3 }).then((res) => {
+        if (res.errno === 0) {
+          that.loading = 0;
+          if (res.data) {
+            that.indexList = Object.keys(res.data);
+            that.userData = res.data;
+            for (let key in res.data) {
+              res.data[key].forEach((ele) => {
+                if (ele.tag_name) {
+                  ele.labelArray = ele.tag_name
+                    .substr(0, ele.tag_name.length - 1)
+                    .split("#");
+                } else {
+                  ele.labelArray = [];
+                }
+
+                if (ele.address) {
+                  if (
+                    ele.address.indexOf("#") == -1 &&
+                    ele.address.indexOf("/") == -1
+                  ) {
+                    // 不包含# /
+                    ele.totalAddress = ele.address;
+                  } else if (ele.address.indexOf("#") == -1) {
+                    // 不包含#
+                    let addressArray = ele.address
+                      .substr(0, ele.address.length)
+                      .split("/");
+                    ele.totalAddress =
+                      addressArray[0] + addressArray[1] + addressArray[2];
+                  } else if (ele.address.indexOf("#") != -1) {
+                    let addressArray = ele.address
+                      .substr(0, ele.address.length)
+                      .split("#");
+                    let addArr = addressArray[0]
+                      .substr(0, addressArray[0].length)
+                      .split("/");
+                    ele.totalAddress =
+                      addArr[0] + addArr[1] + addArr[2] + addressArray[1];
+                  }
+                }
+              });
+            }
+          }
+        }
+      });
+    },
+  },
+};
+</script>
+<style lang="less">
+.kehu {
+  min-height: calc(100% - 50px);
+  background: #f5f5f5;
+  padding-top: 50px;
+  .van-nav-bar {
+    z-index: 2;
+    background: url(../../images/msgBg.jpg) no-repeat;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .topRight {
+    position: fixed;
+    right: 5px;
+    top: 0;
+    z-index: 1;
+    img {
+      width: 18px;
+      padding: 15px 10px;
+    }
+  }
+  .kehuCont {
+    .content {
+      padding: 0 25px 0 10px;
+      background: #fff;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+      .top {
+        display: flex;
+        line-height: 20px;
+        align-items: center;
+        .phone {
+          padding: 5px 0 0 10px;
+          img {
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+      .tipCont {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -5px;
+        font-size: 12px;
+        li {
+          margin: 2px 5px;
+          padding: 0 5px;
+          border-radius: 20px;
+          color: #1c92ff;
+          border: 1px solid #1c92ff;
+        }
+      }
+      .address{
+          font-size: 13px;
+          color: #888888;
+          margin: 5px 0;
+      }
+    }
+  }
+}
+</style>

@@ -1,0 +1,236 @@
+<template>
+  <div class="meeting">
+    <van-nav-bar
+      left-text="会议管理"
+      right-text="新增会议"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+      @click-right="$router.push('/addMeeting')"
+    />
+    <div v-if="meetingList != ''">
+      <div class="list" v-for="(item,index) in meetingList" :key="index">
+        <dl @click="detail(item.metting_id)">
+          <!-- <dt><img :src="item.photo" alt=""></dt> -->
+          <dd>
+            <p>{{item.metting_name}}</p>
+            <p>
+              <img src="../../images/time.png" alt />
+              {{item.add_time}}
+            </p>
+            <p>
+              <img src="http://sc.xfd365.com/crmImages/dingwei.png" alt />
+              {{item.place}}
+            </p>
+          </dd>
+        </dl>
+        <ul>
+          <li @click="edit(item.metting_id)">
+            <img src="../../images/edit.png" alt /> 编辑
+          </li>
+          <li>
+            <img src="../../images/share.png" alt /> 分享
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "meeting",
+  data() {
+    return {
+      meetingList: [],
+      loading: 0,
+      page: 1,
+      pageSize: 10,
+      totalPage: 1
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack; // Android原生返回按钮执行leftBack()方法
+
+    this.getList();
+    document.documentElement.scrollTop = 0;
+    window.addEventListener("scroll", this.scrollBottomMeeting);
+    //   this.$api.mettingLists().then(res=>{
+    //       if(res.errno == 0){
+    //           this.meetingList = res.data.data
+    //       }
+    //   })
+  },
+  methods: {
+    scrollBottomMeeting() {
+      let that = this;
+      var scrollTop = 0;
+      if (document.documentElement && document.documentElement.scrollTop) {
+        scrollTop = document.documentElement.scrollTop;
+      } else if (document.body) {
+        scrollTop = document.body.scrollTop;
+      }
+
+      let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+      let scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      ); /*文档完整的高度*/
+      if (
+        scrollHeight - clientHeight - scrollTop <= 0 &&
+        that.page < that.totalPage
+      ) {
+        that.page += 1;
+        that.loading = 1;
+        that.getList();
+      }
+    },
+    getList() {
+      let that = this;
+      this.$api
+        .mettingLists({ page: that.page, size: that.pageSize })
+        .then(res => {
+          that.totalPage = res.data.total;
+          if (res.errno === 0) {
+            if (that.page == 1) {
+              that.loading = 0;
+              that.meetingList = res.data.data;
+            } else if (res.data.data.length > 0) {
+              that.meetingList.push(...res.data.data);
+              if (
+                res.data.data.length < that.pageSize ||
+                (res.data.data.length == that.pageSize &&
+                  that.page == that.totalPage)
+              ) {
+                that.loading = 0;
+              }
+            } else if (that.page >= that.totalPage) {
+              that.loading = 0;
+            }
+          }
+        });
+    },
+    edit(id) {
+      this.$router.push({
+        path: "/addMeeting",
+        query: {
+          metting_id: id
+        }
+      });
+    },
+    detail(id) {
+      this.$router.push({
+        path: "/addSuccess",
+        query: {
+          metting_id: id
+        }
+      });
+    },
+    leftBack() {
+      this.$router.push({
+        path: "/"
+      });
+    }
+  },
+  destroyed() {
+      window.removeEventListener('scroll', this.scrollBottomMeeting);//监听页面滚动事件
+    }
+};
+</script>
+<style lang="less">
+.meeting {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+
+  .list {
+    background: #fff;
+    margin-bottom: 10px;
+    dl {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      height: 105px;
+      margin: 0;
+      padding: 0 15px;
+      border-bottom: 1px solid #eeeeee;
+      dt {
+        width: 23%;
+        margin: 0 5%;
+        img {
+          width: 100%;
+        }
+      }
+      dd {
+        margin-left: 0;
+        p {
+          line-height: 30px;
+          img {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+          }
+        }
+        p:nth-of-type(2),
+        p:nth-of-type(3) {
+          color: #aaaaaa;
+        }
+      }
+    }
+    ul {
+      height: 50px;
+      display: flex;
+      justify-content: space-between;
+      li {
+        width: 50%;
+        text-align: center;
+        line-height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        img {
+          width: 15px;
+          height: 15px;
+          margin-right: 10px;
+        }
+      }
+      li:first-child {
+        border-right: 1px solid #eeeeee;
+      }
+    }
+  }
+
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+  }
+}
+</style>

@@ -1,0 +1,191 @@
+<template>
+  <div class="tagCustomerSel">
+    <van-nav-bar 
+      left-text="选择客户" 
+      right-text="确定"
+      left-arrow 
+      @click-left="$router.go('-1')"
+      @click-right="sureSelect"
+    />
+
+    <div class="search">
+      <input type="text" v-model="searchInput" placeholder="请输入客户姓名或手机号" />
+      <img src="../images/searchContact.png" alt @click="searchAll" />
+    </div>
+
+    <div v-if="userData != ''">
+      <van-index-bar :index-list="indexList">
+        <div v-for="(item, index) in userData" :key="index">
+          <van-index-anchor :index="index">{{index}}</van-index-anchor>
+          <div class="content" v-for="(item1, index1) in item" :key="index1">
+            <van-checkbox
+              :name="item1.linker_id"
+              v-model="item1.select"
+              :class="item1.address?'stationA':'stationB'"
+            >
+              <p :class="item1.address?'stationA':'stationB'">{{item1.name}} | {{item1.phone}}</p>
+              <p class="station" v-if="item1.address">站点名称</p>
+            </van-checkbox>
+          </div>
+        </div>
+      </van-index-bar>
+    </div>
+
+    <div v-else-if="userData == '' && !loading && searchInput" class="zanwu">
+      <span>没有<span class="tip" v-if="searchInput">"{{searchInput}}"</span>相关结果</span>
+    </div>
+    <div v-else-if="userData == '' && !loading && !searchInput" class="zanwu">
+      <span>暂无内容</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "tagCustomerSel",
+  data() {
+    return {
+      type: '',
+      loading: 1,
+      searchInput: "",
+      indexList: [],
+      userData: []
+    };
+  },
+  mounted() {
+    var type = this.$route.query.type
+    this.type = type
+    this.getList();
+  },
+  methods: {
+    searchAll() {
+      this.getList();
+    },
+    getList() {
+      let that = this;
+      if(that.type == 2){ // 建行客户
+        this.$api.contactList({ type: that.type }).then(res => {
+          if (res.errno === 0) {
+            that.loading = 0;
+            if (res.data) {
+              that.indexList = Object.keys(res.data);
+              that.userData = res.data;
+            }
+          }
+        });
+      }else{ // 其他客户
+        // this.$api.contactList({ type: that.type }).then(res => {
+        //   if (res.errno === 0) {
+        //     that.loading = 0;
+        //     if (res.data) {
+        //       that.indexList = Object.keys(res.data);
+        //       that.userData = res.data;
+        //     }
+        //   }
+        // });
+      }
+      
+    },
+    sureSelect(){
+      
+    }
+  }
+};
+</script>
+<style lang="less">
+.tagCustomerSel {
+  min-height: 100%;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .search {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #aaaaaa;
+    }
+    ::-webkit-input-placeholder {
+      color: #aaaaaa;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 16px;
+      padding: 10px 15px;
+    }
+  }
+  .content {
+    padding: 0 25px 0 10px;
+    height: 50px;
+    background: #fff;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    p {
+      &.stationA {
+        padding-top: 6px;
+      }
+      &.stationB {
+        padding-top: 16px;
+      }
+      &.station {
+        font-size: 12px;
+        color: #666666;
+      }
+    }
+    .stationA{
+      &.van-checkbox{
+        padding-bottom: 5px;
+      }
+    }
+    .stationB {
+      &.van-checkbox{
+        padding-bottom: 15px;
+      }
+      .van-checkbox__icon {
+        margin-top: 15px;
+      }
+    }
+  }
+
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    span.tip {
+      color: red;
+    }
+    img {
+      width: 80%;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

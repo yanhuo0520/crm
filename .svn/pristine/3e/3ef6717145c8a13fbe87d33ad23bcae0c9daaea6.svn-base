@@ -1,0 +1,893 @@
+<template>
+  <div class="weeklyAdd">
+    <div class="top">
+      <p @click="leftBack">
+        <img src="../../images/goback.png" alt />
+        <span>{{leftText}}</span>
+      </p>
+      <ul>
+        <li>
+          <span>{{reportData.station}}</span>
+          <span>新增客户</span>
+        </li>
+        <li>
+          <span>{{reportData.follow}}</span>
+          <span>跟进客户</span>
+        </li>
+        <li>
+          <span>{{reportData.bai_follow}}</span>
+          <span>拜访客户</span>
+        </li>
+        <li>
+          <span>{{reportData.zong}}</span>
+          <span>管理客户</span>
+        </li>
+      </ul>
+    </div>
+    <div class="content">
+      <div class="marBottom">
+        <van-cell class="cellDate" title="报告时间" :value="date" is-link @click="dateShow = true" icon="http://sc.xfd365.com/crmImages/genjinTime.png"></van-cell>
+        <van-calendar v-model="dateShow" type="range" title="报告时间" :default-date="defaultDate" :min-date="minDate" :max-date="maxDate" color="#1c92ff" @confirm="onConfirm" confirm-disabled-text="请选择结束时间" />
+        <van-cell
+          class="getAddress"
+          title="所在位置"
+          :value="address"
+          icon="http://sc.xfd365.com/crmImages/dingwei.png"
+          is-link
+          @click="mapSearch"
+        />
+        <baidu-map @ready="handler"></baidu-map>
+      </div>
+      <div class="marBottom">
+        <van-cell title="本周总结" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+        <van-field
+          rows="3"
+          :autosize = autosize
+          type="textarea"
+          maxlength="5000"
+          placeholder="请输入今日总结内容"
+          show-word-limit
+          v-model="summaryCont"
+        />
+      </div>
+      <div class="marBottom">
+        <van-cell title="上传图片" icon="http://sc.xfd365.com/crmImages/pic.png" is-link></van-cell>
+        <van-uploader v-model="fileList1" :after-read="afterRead1" :before-delete="beforeDelete1" />
+      </div>
+      <div class="marBottom">
+        <van-cell title="上传附件" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+        <van-uploader v-model="fileList2" :after-read="afterRead2" :before-delete="beforeDelete2" />
+      </div>
+      <div class="marBottom">
+        <van-cell title="下周计划" icon="http://sc.xfd365.com/crmImages/plan.png"></van-cell>
+        <van-field
+          rows="3"
+          :autosize = autosize
+          type="textarea"
+          maxlength="5000"
+          placeholder="请输入明日计划内容"
+          show-word-limit
+          v-model="planCont"
+        />
+      </div>
+      <div class="marBottom">
+        <van-cell title="汇报对象" icon="http://sc.xfd365.com/crmImages/name.png"></van-cell>
+        <ul class="selectUl">
+          <li v-for="(item, index) in lockListArray" :key="'lock-'+index"> 
+            <span>{{item.firstName}}</span>
+            <img src="../../images/lock.png" alt />
+          </li>
+          <li v-for="(item, index) in reportArray" :key="+index"> 
+            <span>{{item.firstName}}</span>
+            <img src="../../images/delete.png" alt @click="deleteSel(item.id, item.firstName)" />
+          </li>
+          <img src="../../images/add.png" alt class="addSelImg" @click="addSelPop" />
+        </ul>
+      </div>
+    </div>
+    <div class="footer" v-if="hidshowFooter">
+      <div @click="$router.push('/weeklyList')">
+        <img src="../../images/lylist.png" alt /> 周报列表
+      </div>
+      <button class="save" @click="saveInfo">提交</button>
+    </div>
+
+    <van-dialog v-model="showAddrDialog" title="提示" show-cancel-button @confirm="changeAddrConfirm">
+      <div class="addr-dialog-desc">当前定位未获取到详细地址,请手动输入</div> 
+      <van-field class="addr-dialog-input" v-model="dialogAddr" label="所在位置" placeholder="请输入所在位置" />
+    </van-dialog>
+  </div>
+</template>
+<script>
+import Exif from "exif-js";
+export default {
+  name: "weeklyAdd",
+  data() {
+    return {
+      userId: '',
+      leftText: '周报',
+      autosize: {maxHeight: 290, minHeight: 50},
+      date: "",
+      start_time: '',
+      end_time: '',
+      defaultDate: [],
+      minDate: new Date(2020, 0, 1),
+      maxDate: new Date(2020, 0, 31),
+      dateShow: false,
+      address: "",
+      lnglat: "",
+      location: "",
+      locationlnglat: "",
+      fileList1: [],
+      pics: "",
+      picsArray: [],
+      fileList2: [],
+      files: "",
+      filesArray: [],
+      summaryCont: "",
+      planCont: "",
+      reportArray: [],
+      report_ids: '',
+      reportData: {},
+      lockListArray: [],
+      lockList_id: '',
+      report_id: '', // 编辑时周报ID
+
+      docmHeight: document.documentElement.clientHeight,  //默认屏幕高度       
+      showHeight:  '0',   //实时屏幕高度        
+      hidshowFooter:true,  //显示或者隐藏footer,  
+
+      filesObj: {
+        name: "",
+        type: "",
+        index: ''
+      },
+      headerImage: "",
+      picValue: "",
+      upImgUrl: "",
+      showAddrDialog: false,
+      dialogAddr: ''
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null;
+    window.convertor = null;
+    window.vue = this;
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  }
+    document.documentElement.scrollTop = 0
+    var nowTime = new Date().getTime() ;
+    var day = new Date().getDay();
+    var oneDayTime = 24*60*60*1000 ;
+    var MondayTime = nowTime - (day-1)*oneDayTime ;//显示周一
+    var SundayTime =  nowTime + (5-day)*oneDayTime ;//显示周五
+    this.start_time = new Date(MondayTime).getFullYear()+'/'+(new Date(MondayTime).getMonth()+1)+'/'+new Date(MondayTime).getDate()
+    this.end_time = new Date(SundayTime).getFullYear()+'/'+(new Date(SundayTime).getMonth()+1)+'/'+new Date(SundayTime).getDate()
+    this.minDate = new Date(new Date().getFullYear(), new Date().getMonth()-1, 1)
+    this.maxDate = new Date(new Date().getFullYear(), new Date().getMonth()+1, 31)
+    this.defaultDate = [new Date(MondayTime), new Date(SundayTime)]
+    this.date = this.start_time + ' - ' + this.end_time
+          
+  },
+  methods: {
+    leftBack() {
+      if(this.report_id){ // 编辑返回列表页面
+        this.$router.push({
+          path: "/weeklyList"
+        });
+      }else{ // 新增返回首页
+        this.$router.push({
+          path: "/"
+        });
+      }
+    },
+    // 获取头部数据
+    getReport(){
+      let data={}
+        data.lat_time = this.start_time
+        data.end_time = this.end_time
+      this.$api.reportReport(data).then(res=>{
+        if(res.errno ===0){
+          this.reportData = res.data
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+
+    },
+    formatDate(date){
+      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+    },
+    onConfirm(date){
+      var nowTime = new Date().getTime() ;
+      var day = new Date().getDay();
+      var oneDayTime = 24*60*60*1000 ;
+      var MondayTime = nowTime - (day-1)*oneDayTime ;//显示周一
+      var SundayTime =  nowTime + (5-day)*oneDayTime ;//显示周五
+      
+      const [start, end] = date;
+      this.dateShow = false;
+      this.start_time = this.formatDate(start)
+      this.end_time = this.formatDate(end)
+      this.date = `${this.formatDate(start)} - ${this.formatDate(end)}`;
+      // 更新头部数据
+      this.getReport()
+    },
+    afterRead1(file, detail) {
+      let that = this;
+      that.filesObj.name = file.file.name; // 获取文件名
+      that.filesObj.type = file.file.type; // 获取类型
+      that.filesObj.index = detail.index
+      that.fileList1[that.filesObj.index].content = ''
+      that.fileList1[that.filesObj.index].status = 'uploading'
+      that.fileList1[that.filesObj.index].message = '上传中...'
+      that.picValue = file.file; // 文件流
+      that.imgPreview(this.picValue);
+    },
+    // 处理图片
+    imgPreview(file) {
+      let that = this;
+      let Orientation;
+      //去获取拍照时的信息，解决拍出来的照片旋转问题
+      Exif.getData(file, function() {
+        Orientation = Exif.getTag(this, "Orientation");
+      });
+      // 看支持不支持FileReader
+      if (!file || !window.FileReader) return;
+      if (/^image/.test(file.type)) {
+        let reader = new FileReader(); // 创建一个reader
+        reader.readAsDataURL(file); // 将图片2将转成 base64 格式
+        reader.onloadend = function() {
+          // 读取成功后的回调
+          // console.log(this.result)
+          let result = this.result;
+          let img = new Image();
+          img.src = result;
+          //判断图片是否大于500K,是就直接上传，反之压缩图片
+          if (this.result.length <= 500 * 1024) {
+            that.headerImage = this.result;
+            that.postImg();
+          } else {
+            img.onload = function() {
+              let data = that.compress(img, Orientation);
+              that.headerImage = data;
+              that.postImg();
+            };
+          }
+        };
+      }
+    },
+    // 压缩图片
+    compress(img, Orientation) {
+      let canvas = document.createElement("canvas");
+      let ctx = canvas.getContext("2d");
+
+      let tCanvas = document.createElement("canvas");
+      let tctx = tCanvas.getContext("2d");
+
+      let width = img.width;
+      let height = img.height;
+      //如果图片大于四百万像素，计算压缩比并将大小压至400万以下
+      let ratio;
+      if ((ratio = (width * height) / 4000000) > 1) {
+        // console.log("大于400万像素");
+        ratio = Math.sqrt(ratio);
+        width /= ratio;
+        height /= ratio;
+      } else {
+        ratio = 1;
+      }
+      canvas.width = width;
+      canvas.height = height; //        铺底色
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height); //如果图片像素大于100万则使用瓦片绘制
+      let count;
+      if ((count = (width * height) / 1000000) > 1) {
+        // console.log("超过100W像素");
+        count = ~~(Math.sqrt(count) + 1); //计算要分成多少块瓦片 //            计算每块瓦片的宽和高
+        let nw = ~~(width / count);
+        let nh = ~~(height / count);
+        tCanvas.width = nw;
+        tCanvas.height = nh;
+        for (let i = 0; i < count; i++) {
+          for (let j = 0; j < count; j++) {
+            tctx.drawImage(img, i * nw * ratio, j * nh * ratio, nw * ratio, nh * ratio, 0, 0, nw, nh);
+            ctx.drawImage(tCanvas, i * nw, j * nh, nw, nh);
+          }
+        }
+      } else {
+        ctx.drawImage(img, 0, 0, width, height);
+      }
+      //修复ios上传图片的时候 被旋转的问题
+       if (Orientation != "" && Orientation != 1) {
+          switch (Orientation) {
+              case 6: //需要顺时针（向左）90度旋转
+                  this.rotateImg(img, "left", canvas);
+                  break;
+               case 8: //需要逆时针（向右）90度旋转
+                   this.rotateImg(img, "right", canvas);
+                   break;
+               case 3: //需要180度旋转
+                   this.rotateImg(img, "right", canvas); //转两次
+                   this.rotateImg(img, "right", canvas);
+                   break;
+           }
+        }
+            //进行最小压缩
+            let ndata = canvas.toDataURL("image/jpeg", 0.1);
+            tCanvas.width = tCanvas.height = canvas.width = canvas.height = 0;
+            return ndata;
+    },
+    // 旋转图片
+        rotateImg(img, direction, canvas) {
+            //最小与最大旋转方向，图片旋转4次后回到原方向
+            const min_step = 0;
+            const max_step = 3;
+            if (img == null) return;
+            //img的高度和宽度不能在img元素隐藏后获取，否则会出错
+            let height = img.height;
+            let width = img.width;
+            let step = 2;
+            if (step == null) {
+                step = min_step;
+            }
+            if (direction == "right") {
+                step++;
+                //旋转到原位置，即超过最大值
+                step > max_step && (step = min_step);
+            } else {
+                step--;
+                step < min_step && (step = max_step);
+            }
+            //旋转角度以弧度值为参数
+            let degree = (step * 90 * Math.PI) / 180;
+            let ctx = canvas.getContext("2d");
+            switch (step) {
+                case 0:
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0);
+                    break;
+                case 1:
+                    canvas.width = height;
+                    canvas.height = width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, 0, -height);
+                    break;
+                case 2:
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, -width, -height);
+                    break;
+                case 3:
+                    canvas.width = height;
+                    canvas.height = width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, -width, 0);
+                    break;
+            }
+        },
+        //将base64转换为文件
+        dataURLtoFile(dataurl) {
+            var arr = dataurl.split(","),
+                bstr = atob(arr[1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], this.filesObj.name, {
+                type: this.filesObj.type
+            });
+        },
+         //接口上传图片
+        postImg(){
+          let file = this.dataURLtoFile(this.headerImage);
+          let token = localStorage.getItem("token");
+          var formdata = new FormData();
+          formdata.append("token", token);
+          formdata.append("file", file)
+          const instance = this.$axios.create({
+            //withCredentials:true
+          });
+          instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+            if (res.data.errno === 0) {
+              this.$toast("上传成功");
+              this.fileList1[this.filesObj.index].content = res.data.data.url
+              this.fileList1[this.filesObj.index].status = 'done'
+              this.fileList1[this.filesObj.index].message = ''
+              this.picsArray.push(res.data.data.url);
+            } else {
+              this.$toast(res.errmsg);
+              this.fileList1[this.filesObj.index].status = 'failed'
+              this.fileList1[this.filesObj.index].message = '上传失败'
+            }
+          }, err=>{
+            // console.log(err)
+            this.fileList1[this.filesObj.index].status = 'failed'
+            this.fileList1[this.filesObj.index].message = '上传失败'
+          });
+
+        },
+    beforeDelete1(file ,detail){
+      let index = detail.index
+      this.fileList1.splice(index, 1);
+      this.picsArray.splice(index, 1);
+    },
+    afterRead2(file) {
+      var formdata = new FormData();
+      //可以通过append()方法来追加数据
+      let token = localStorage.getItem("token");
+      // console.log(file.file)
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+          if (res.data.errno === 0) {
+            this.$toast("上传成功");
+            this.filesArray.push(res.data.data.url)
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    beforeDelete2(file ,detail){
+      let index = detail.index
+      this.fileList2.splice(index, 1);
+      this.filesArray.splice(index, 1);
+    },
+    deleteSel(user_id, firstName) {
+      let that = this
+      let selReport = localStorage.getItem("selReport")
+        selReport = JSON.parse(selReport)
+      let index = selReport.indexOf(user_id + '-' + firstName)
+      selReport.splice(index, 1);
+      that.report_ids = ''
+      that.reportArray = []
+      selReport.forEach(ele => {
+        let eleJson = {}
+          eleJson.id = ele.substr(0, ele.length).split("-")[0]
+          eleJson.firstName = ele.substr(0, ele.length).split("-")[1]
+        that.report_ids += eleJson.id + ','
+        that.reportArray.push(eleJson)
+      });
+
+      localStorage.setItem("selReport", JSON.stringify(selReport))
+    },
+    addSelPop() {
+      this.$router.push({
+        path: '/reportSel'
+      })
+    },
+     // 获取锁定汇报对象
+    getLockList(){
+      this.$api.reportUserSel().then(res=>{
+        if(res.errno === 0){
+          // this.list = res.data
+          this.lockListArray = []
+          this.lockList_id = ''
+          if(res.data){
+            res.data.forEach(ele=>{
+              if(ele.is_lock == 1){
+                this.lockListArray.push(ele)
+                this.lockList_id += ele.user_id + ','
+              }
+            })
+          }
+          if(this.lockListArray){
+            this.lockListArray.forEach(ele=>{
+              ele.firstName = ele.user_name.substr(0, 1)
+            })
+          }
+        }
+      })
+    },
+    saveInfo() {
+      this.pics = "";
+      if (this.picsArray != "") {
+        this.picsArray.forEach(ele => {
+          this.pics += ele + "#";
+        });
+      }
+
+      this.files = "";
+      if (this.filesArray != "") {
+        this.filesArray.forEach(ele => {
+          this.files += ele + "#";
+        });
+      }
+      var data = {};
+      data.type = 2 //1日报2周报
+      data.start_time = this.start_time;
+      data.end_time = this.end_time;
+      data.address = this.address;
+      data.lnglat = this.lnglat;
+      data.now_summary = this.summaryCont;
+      data.pic = this.pics;
+      data.file = this.files;
+      data.future_plan = this.planCont;
+      if(this.lockList_id){
+        data.report_ids = this.lockList_id + this.report_ids
+      }else{
+        data.report_ids = this.report_ids
+      }
+      if (!this.address) {
+        this.showAddrDialog = true
+        return
+      }
+      // console.log(data);
+      if (this.summaryCont.trim().length == 0) {
+        this.$toast("请填写本周总结！");
+        return;
+      }
+      if (this.planCont.trim().length == 0) {
+        this.$toast("请填写下周计划！");
+        return;
+      }
+      // if (this.report_ids.trim().length == 0) {
+      //   this.$toast("请选择汇报对象！");
+      //   return;
+      // }
+      this.$api.reportAdd(data).then(res=>{
+        if(res.errno === 0){
+          this.$toast("提交成功")
+          this.leftBack()
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    },
+    mapSearch() {
+      if (!this.address) {
+        this.showAddrDialog = true
+      }
+      // this.$router.push({
+      //   path: "/mapSearch",
+      //   query: {
+      //     from: "weeklyAdd"
+      //   }
+      // });
+    },
+    handler({ BMap, map }) {
+      window.map = map; //注册为全局
+      var that = this; // map方法中的this指向不对。所有申明一个。。小细节的东西
+      // 刚进入页面中的定位，需要向用户授权
+      var point = new BMap.Point(113.39852, 34.897445);
+
+      var geolocation = new BMap.Geolocation();
+      var geoc = new BMap.Geocoder();
+      window.geoc = geoc;
+
+      var convertor = new BMap.Convertor();
+      window.convertor = convertor;
+
+      if (typeof android != 'undefined') {
+        android.requestLocation();
+      } else {
+        geolocation.getCurrentPosition(
+          function(r) {
+            if (this.getStatus() == BMAP_STATUS_SUCCESS) {
+              var pt = r.point;
+              geoc.getLocation(pt, function(rs) {
+                if(rs.surroundingPois.length > 0){
+                    if(rs.surroundingPois[0].address.length > 1){
+                      that.address = rs.surroundingPois[0].address + '(' + rs.surroundingPois[0].title + ')'
+                      that.location = rs.surroundingPois[0].address + '(' + rs.surroundingPois[0].title + ')'
+                    }else{
+                      that.address = rs.surroundingPois[0].title
+                      that.location = rs.surroundingPois[0].title
+                    }
+                    that.lnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                    that.locationlnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                  }else{
+                    that.address = rs.address;
+                    that.location = rs.address;
+                    that.lnglat = rs.point.lng + ',' + rs.point.lat
+                    that.locationlnglat = rs.point.lng + ',' + rs.point.lat
+                  }
+              });
+            } else {
+              alert("failed" + this.getStatus());
+            }
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    },
+    // 执行Android方法获取位置信息----（高德坐标转换成百度坐标）
+        locationGDAll(location){
+          let that = this
+          let X_PI = Math.PI * 3000.0 / 180.0;
+          let x = location.longitude, y = location.latitude;
+          let z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * X_PI);
+          let theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * X_PI);
+
+          that.lnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.locationlnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.address = location.address
+          that.location = location.address
+        },
+  },
+  beforeRouteEnter(to, from, next) {
+    document.documentElement.scrollTop = 0;
+    let addressSel = to.query.addressSel;
+    let lnglatSel = to.query.lnglatSel;
+    to.meta.addressSel = addressSel;
+    to.meta.lnglatSel = lnglatSel;
+
+    if (from.path == "/mapSearch" || from.path == "/reportSel") {
+      to.meta.isBack = true;
+    } else {
+      to.meta.isBack = false;
+    }
+
+    next();
+  },
+  activated() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null;
+    window.convertor = null;
+    window.vue = this;
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  }
+
+    this.getReport()
+    this.getLockList();
+
+    if (this.$route.meta.addressSel) {
+      this.address = this.$route.meta.addressSel;
+      this.lnglat = this.$route.meta.lnglatSel;
+    }
+
+    // 获取已选择汇报对象
+    let selReport = localStorage.getItem("selReport")
+    if(selReport){
+      this.report_ids = ''
+      this.reportArray = []
+      JSON.parse(selReport).forEach(ele => {
+        let eleJson = {}
+          eleJson.id = ele.substr(0, ele.length).split("-")[0]
+          eleJson.firstName = ele.substr(0, ele.length).split("-")[1]
+        this.report_ids += eleJson.id + ','
+        this.reportArray.push(eleJson)
+      });
+    }
+
+    if (!this.$route.meta.isBack) {
+      // 不缓存
+      document.documentElement.scrollTop = 0
+      var nowTime = new Date().getTime() ;
+      var day = new Date().getDay();
+      var oneDayTime = 24*60*60*1000 ;
+      var MondayTime = nowTime - (day-1)*oneDayTime ;//显示周一
+      var SundayTime =  nowTime + (5-day)*oneDayTime ;//显示周五
+      this.start_time = new Date(MondayTime).getFullYear()+'/'+(new Date(MondayTime).getMonth()+1)+'/'+new Date(MondayTime).getDate()
+      this.end_time = new Date(SundayTime).getFullYear()+'/'+(new Date(SundayTime).getMonth()+1)+'/'+new Date(SundayTime).getDate()
+      this.minDate = new Date(new Date().getFullYear(), new Date().getMonth()-1, 1)
+      this.maxDate = new Date(new Date().getFullYear(), new Date().getMonth()+1, 31)
+      this.defaultDate = [new Date(MondayTime), new Date(SundayTime)]
+      this.date = this.start_time + ' - ' + this.end_time
+      this.address = this.location;
+      this.lnglat = this.locationlnglat;
+      this.fileList1 = [];
+      this.pics = "";
+      this.picsArray = [];
+      this.fileList2 = [];
+      this.files = "";
+      this.filesArray = [];
+      this.summaryCont = "";
+      this.planCont = "";
+       // this.reportArray = [],
+      // this.report_ids = ''
+      this.report_id = ''
+      this.leftText = '周报'
+
+      var report_id = this.$route.query.report_id;
+      if(this.$route.query.report_id){ // 编辑周报
+        this.leftText = "编辑周报"
+        this.report_id = report_id
+        this.$api.reportDetail({report_id: report_id}).then(res=>{
+          if(res.errno === 0){
+            this.address = res.data.address
+            this.lnglat = res.data.lnglat
+            this.pics = res.data.pic
+            this.files = res.data.file
+            this.summaryCont = res.data.now_summary
+            this.planCont = res.data.future_plan
+
+            if (res.data.pic) {
+              var pics = res.data.pic;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              this.picsArray = r
+              r = r.map(item => ({ url: item }));
+              this.fileList1 = JSON.parse(JSON.stringify(r));
+            }
+            if (res.data.file) {
+              var file = res.data.file;
+              file = file.split("#");
+              var r = file.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              this.filesArray = r
+              r = r.map(item => ({ url: item }));
+              this.fileList2 = JSON.parse(JSON.stringify(r));
+            }
+
+          }
+        })
+      }
+    }
+    this.$route.meta.isBack = false;
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+};
+</script>
+<style lang="less">
+.weeklyAdd {
+  min-height: calc(100% - 100px);
+  background: #f5f5f5;
+  padding-top: 50px;
+  padding-bottom: 50px;
+  .top {
+    z-index: 1;
+    background: #ffffff url(../../images/topBg.jpg) no-repeat;
+    width: 100%;
+    height: 75px;
+    background-size: 100% 75px;
+    > p {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      background: #ffffff url(../../images/topBg.jpg) no-repeat top;
+      font-size: 14px;
+      height: 50px;
+      line-height: 50px;
+      color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding-left: 16px;
+      img {
+        width: 10px;
+        height: 16px;
+        margin-right: 10px;
+      }
+      span {
+        line-height: 18px;
+      }
+    }
+    ul {
+      margin: 0 10px;
+      padding: 5px;
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      border-radius: 5px;
+      background: #f3feff url(../../images/inheader1.png) no-repeat center
+        bottom;
+      background-size: 100% auto;
+      li {
+        width: 25%;
+        padding: 5px 0;
+        text-align: center;
+      }
+      span {
+        display: block;
+        line-height: 20px;
+        &:first-child {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+    .selectUl {
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      color: #ffffff;
+      padding: 5px;
+      li {
+        margin: 5px 8px;
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+        font-size: 16px;
+        text-align: center;
+        background: #1c92ff;
+        border-radius: 50%;
+        position: relative;
+        img {
+          position: absolute;
+          right: -6px;
+          top: -6px;
+          width: 16px;
+          height: 16px;
+          padding: 5px;
+        }
+      }
+      .addSelImg {
+        margin: 5px;
+        width: 36px;
+        height: 36px;
+      }
+    }
+  }
+
+
+  .van-uploader{
+    padding: 10px 15px 0 15px;
+  }
+  .van-uploader__preview{
+    margin-right: 15px;
+    margin-bottom: 15px;
+  }
+  .cellDate .van-cell__title,
+  .getAddress .van-cell__title {
+    flex: 0.35;
+  }
+  .footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: #ffffff;
+    display: inline-flex;
+    div{
+        width: 80px;
+        display: grid;
+        text-align: center;
+        img{
+            width: 20px;
+            margin: 5px 30px 0 30px;
+        }
+    }
+    .save {
+      width: calc(100% - 80px);
+      display: block;
+      border: none;
+      background: #1c92ff;
+      color: #fff;
+      height: 36px;
+      margin: 7px 10px;
+      border-radius: 10px;
+    }
+  }
+  .addr-dialog-desc {
+    color: #666;
+    padding: 10px 16px;
+    font-size: 14px;
+    text-align: center
+  }
+  .addr-dialog-input {
+    margin-bottom: 20px
+  }
+}
+</style>

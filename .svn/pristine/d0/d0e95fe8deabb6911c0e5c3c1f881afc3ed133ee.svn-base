@@ -1,0 +1,474 @@
+<template>
+  <div class="contactAdd">
+    <van-nav-bar :left-text="leftText" left-arrow @click-left="$router.go(-1)" />
+    <div class="marBottom">
+      <van-cell
+        title="客户标签"
+        @click="isType=true"
+        is-link
+        :value="typeName"
+        icon="http://sc.xfd365.com/crmImages/tag.png"
+      />
+    </div>
+    <div class="marBottom">
+      <van-field
+        placeholder="请输入姓名"
+        label="姓名"
+        left-icon="http://sc.xfd365.com/crmImages/name.png"
+        input-align="right"
+        v-model="name"
+      />
+      <van-field
+        placeholder="请输入电话"
+        type="tel"
+        label="电话"
+        left-icon="http://sc.xfd365.com/crmImages/phone.png"
+        input-align="right"
+        v-model="mobile"
+      />
+      <van-field
+        placeholder="请输入邮箱"
+        label="邮箱"
+        left-icon="http://sc.xfd365.com/crmImages/aemail.png"
+        input-align="right"
+        v-model="email"
+      />
+      <van-field
+        placeholder="请输入公司"
+        label="公司"
+        left-icon="http://sc.xfd365.com/crmImages/customerName.png"
+        input-align="right"
+        v-model="company"
+      />
+      <van-field
+        placeholder="请输入职位"
+        label="职位"
+        left-icon="http://sc.xfd365.com/crmImages/yewu.png"
+        input-align="right"
+        v-model="zhiwei"
+      />
+      <div class="addressCont">
+        <van-field
+          placeholder="请选择地址/获取位置"
+          label="地址"
+          left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+          input-align="right"
+          v-model="address"
+          @click="prov = true"
+          readonly
+          class="addressIn"
+        />
+        <p class="getLocat" @click="getLocation">获取当前位置</p>
+      </div>
+      <van-field
+        placeholder="请输入详细地址"
+        label="详细地址"
+        left-icon="http://sc.xfd365.com/crmImages/yewu.png"
+        input-align="right"
+        v-model="detailAddress"
+      />
+
+      <baidu-map class="map" @ready="handler"></baidu-map>
+    </div>
+    <div class="marBottom">
+      <van-cell title="备注" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+      <van-field v-model="message" rows="2" autosize type="textarea" placeholder="请输入备注信息" />
+    </div>
+
+    <button class="save" @click="save">保存</button>
+
+    <div class="provin" v-show="prov">
+      <van-area :area-list="areaList" @cancel="hideProv" @confirm="confirmProv" />
+      <van-overlay :show="prov" @click="prov = false" />
+    </div>
+
+    <van-popup v-model="isType">
+      <div class="content">
+        <p>*可以选择多种标签</p>
+        <ul>
+          <li
+            v-for="(item,index) in type"
+            :key="index"
+            :class="item.ischecked?'active':''"
+            @click="item.ischecked = !item.ischecked"
+          >{{item.title}}</li>
+        </ul>
+        <button @click="closeType">确定</button>
+      </div>
+    </van-popup>
+    <img src="http://sc.xfd365.com/crmImages/tags.png" alt v-show="isType" />
+  </div>
+</template>
+<script>
+import AreaList from "../../styles/area";
+import BMap from "vue-baidu-map/components/map/Map.vue";
+export default {
+  name: "contactAdd",
+  data() {
+    return {
+      leftText: "添加外部联系人",
+      isType: false,
+      typeName: "请选择标签类型",
+      label: "",
+      type: [
+        {
+          title: "益农社站长",
+          ischecked: false
+        },
+        {
+          title: "标准站站长",
+          ischecked: false
+        },
+        {
+          title: "第三方",
+          ischecked: false
+        },
+        {
+          title: "县级运营商",
+          ischecked: false
+        },
+        {
+          title: "银行业务人员",
+          ischecked: false
+        }
+      ],
+      name: "",
+      mobile: "",
+      email: "",
+      company: "",
+      zhiwei: "",
+      areaList: AreaList,
+      prov: false,
+      address: "",
+      detailAddress: '',
+      locaAddress: "",
+      locaDetail: '',
+      message: "",
+      linker_id: ""
+    };
+  },
+  mounted() {
+    window.onAndroid = this.onAndroid;
+    window.onGetLocation = this.onGetLocation;
+    window.geoc = null;
+    window.vue = this;
+
+    document.documentElement.scrollTop = 0;
+    var id = this.$route.query.id;
+    if (this.$route.query.id) {
+      this.leftText = "编辑外部联系人";
+      this.linker_id = id;
+      this.$api.contactDetail({ linker_id: id }).then(res => {
+        if (res.errno === 0) {
+          if (res.data) {
+            this.label = res.data.tag_name;
+            if (this.label) {
+              let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+              var typeName = "";
+              typeNameArray.forEach(ele => {
+                typeName += ele + "、";
+              });
+            }
+            if(res.data.address){
+              if(res.data.address.indexOf("#") == -1 && res.data.address.indexOf("/") == -1){  // 不包含# /
+                this.detailAddress = res.data.address
+              }else if(res.data.address.indexOf("#") == -1){ // 不包含#
+                this.address = res.data.address
+              }else if(res.data.address.indexOf("#") != -1){
+                let addressArray = res.data.address.substr(0, res.data.address.length).split("#")
+                this.address = addressArray[0]
+                this.detailAddress = addressArray[1]
+              }
+              
+            }
+            this.typeName = typeName;
+            this.name = res.data.name;
+            this.mobile = res.data.phone;
+            this.email = res.data.email;
+            this.company = res.data.company;
+            this.zhiwei = res.data.position;
+            // this.address = res.data.address;
+            this.message = res.data.note;
+          }
+        }
+      });
+    }
+  },
+  methods: {
+    closeType() {
+      var type = this.type;
+      var arr = type.filter(ele => {
+        return ele.ischecked;
+      });
+      arr = JSON.parse(JSON.stringify(arr));
+      var typeName = "";
+      var label = "";
+      arr.forEach(ele => {
+        typeName += ele.title + "、";
+        label += ele.title + "#";
+      });
+      this.typeName = typeName;
+      this.label = label;
+      this.isType = false;
+    },
+    hideProv: function() {
+      this.prov = false;
+    },
+    confirmProv: function(val) {
+      this.prov = false;
+      this.detailAddress = '';
+      let value = JSON.stringify(val);
+      value = JSON.parse(value);
+      this.address = "";
+      value.forEach(element => {
+        if (element.name == null) {
+          return;
+        } else {
+          this.address += element.name + "/";
+        }
+      });
+      this.address = this.address.substring(0, this.address.lastIndexOf("/"));
+    },
+    getLocation() {
+      this.address = this.locaAddress;
+      this.detailAddress = this.locaDetail;
+    },
+    handler({ BMap, map }) {
+      window.map = map; //注册为全局
+      var that = this; // map方法中的this指向不对。所有申明一个。。小细节的东西
+      // 刚进入页面中的定位，需要向用户授权
+      var point = new BMap.Point(113.39852, 34.897445);
+
+      var geolocation = new BMap.Geolocation();
+      var geoc = new BMap.Geocoder();
+      window.geoc = geoc;
+
+      var isAndroid = localStorage.getItem("isAndroid");
+      if (isAndroid == "123") {
+        android.requestLocation();
+      } else {
+        geolocation.getCurrentPosition(
+          function(r) {
+            if (this.getStatus() == BMAP_STATUS_SUCCESS) {
+              var pt = r.point;
+              geoc.getLocation(pt, function(rs) {
+                var addComp = rs.addressComponents;
+                that.locaAddress = addComp.province+ "/" + addComp.city+ "/" + addComp.district
+                that.locaDetail = addComp.street + addComp.streetNumber;
+              });
+            } else {
+              alert("failed" + this.getStatus());
+            }
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    },
+    onAndroid() {
+      localStorage.setItem("isAndroid", "123");
+    },
+    onGetLocation(lat, lon) {
+      var that = this;
+      var geoc = window.geoc;
+      var center = Object.assign({}, this.center);
+      center = new BMap.Point(center.lng, center.lat);
+      geoc.getLocation(center, function(rs) {
+        var addComp = rs.addressComponents;
+          that.locaAddress = addComp.province+ "/" + addComp.city+ "/" + addComp.district
+          that.locaDetail = addComp.street + addComp.streetNumber;
+      });
+    },
+    save() {
+      if (this.name.trim().length == 0) {
+        this.$toast("请输入姓名！");
+        return;
+      }
+      let reg = /^1[0-9]{10}$/;
+      if (this.mobile.length == 0) {
+        this.$toast("请输入电话！");
+        return;
+      } else if (this.mobile.length <= 10 || !reg.test(this.mobile)) {
+        this.$toast("电话格式错误！");
+        return;
+      }
+      var regEmail = /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+      if (this.email.trim().length != 0 && !regEmail.test(this.email)) {
+        this.$toast("邮箱格式错误！");
+        return;
+      }
+      
+      let address;
+      if(!this.address){
+        address = this.detailAddress
+      }else if(!this.detailAddress){
+        address = this.address
+      }else{
+        address = this.address + '#' + this.detailAddress
+      }
+      this.$api.addContact({
+          tag_name: this.label,
+          name: this.name,
+          phone: this.mobile,
+          email: this.email,
+          company: this.company,
+          position: this.zhiwei,
+          address: address,
+          note: this.message,
+          type: 2, // 1内部联系人2外部联系人
+          linker_id: this.linker_id
+        })
+        .then(res => {
+          this.$toast(res.errmsg);
+          if (res.errno === 0) {
+            this.$router.go(-1);
+          }
+        });
+    }
+  }
+};
+</script>
+<style lang="less">
+.contactAdd {
+  min-height: 100%;
+  padding-bottom: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .van-field__control{
+    text-overflow: ellipsis;
+  }
+  .addressCont {
+    position: relative;
+    .van-field__label{
+      width: 36px;
+    }
+    .addressIn {
+      padding-right: 96px;
+    }
+    .getLocat {
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      padding: 6px 5px;
+      border-radius: 5px;
+      background: #1C92FF;
+      color: #ffffff;
+    }
+  }
+  .van-picker {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 999;
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .van-popup {
+    width: 90%;
+    border-radius: 10px;
+    .content {
+      p {
+        text-align: right;
+        color: #aaaaaa;
+        margin-top: 15px;
+        margin-right: 15px;
+      }
+      ul {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0 15px;
+        li {
+          height: 30px;
+          padding: 0 10px;
+          font-size: 16px;
+          text-align: center;
+          line-height: 30px;
+          border-radius: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+          &:nth-of-type(1) {
+            border: 1px solid rgba(28, 146, 255, 1);
+            background: rgba(28, 146, 255, 0.1);
+            &.active {
+              color: #1c92ff;
+            }
+          }
+          &:nth-of-type(2) {
+            background: rgba(255, 151, 28, 0.1);
+            border: 1px solid rgba(255, 151, 28, 1);
+            &.active {
+              color: #ff971c;
+            }
+          }
+          &:nth-of-type(3) {
+            background: rgba(28, 252, 255, 0.1);
+            border: 1px solid rgba(50, 209, 211, 1);
+            &.active {
+              color: #32d1d3;
+            }
+          }
+          &:nth-of-type(4) {
+            background: rgba(229, 206, 13, 0.1);
+            border: 1px solid rgba(225, 193, 34, 1);
+            &.active {
+              color: #dfbd00;
+            }
+          }
+          &:nth-of-type(5) {
+            background: rgba(28, 255, 172, 0.1);
+            border: 1px solid rgba(25, 226, 152, 1);
+            &.active {
+              color: #19e298;
+            }
+          }
+        }
+      }
+      button {
+        width: 100%;
+        height: 49px;
+        border: none;
+        border-top: 1px solid #eeeeee;
+        background: #fff;
+        margin-top: 25px;
+        color: #1c92ff;
+        font-size: 16px;
+      }
+    }
+  }
+  > img {
+    width: 70px;
+    height: 70px;
+    position: fixed;
+    top: 50%;
+    margin-top: -140px;
+    left: 5%;
+    z-index: 9999;
+  }
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>

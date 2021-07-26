@@ -1,0 +1,72 @@
+<template>
+    <div class="mettingRegLists">
+      <van-nav-bar
+          left-text="报名列表"
+          left-arrow
+          @click-left="$router.go(-1)"
+      />
+     <div class="list" v-if="!noneList">
+       <img src="../../images/zanwu.png" />
+       <p style="text-align: center;">暂无内容</p>
+     </div>
+     <div class="list" v-if="noneList" v-for="(item,index) in regLists" :key="index">
+         <van-cell :title="item.reg_name" :value="item.reg_phone" :label="item.reg_time" />
+      </div>
+
+    </div>
+</template>
+<script>
+export default {
+  name: "mettingRegLists",
+  data () {
+    return {
+      noneList: true,
+      regLists: []
+    };
+  },
+  mounted(){
+      this.$api.mettingRegLists({
+         metting_id: this.$route.query.metting_id
+      }).then(res=>{
+        // console.log(res)
+        if(res.errno == 0){
+          this.regLists = res.data;
+          if(res.data.reg_count <= 0){
+            this.noneList = false
+          }
+        }
+      })
+  }
+}
+</script>
+<style lang="less">
+.mettingRegLists{
+    min-height: 100%;
+    background: #f5f5f5;
+    .van-nav-bar{
+        background: url(../../images/msgBg.jpg) no-repeat;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-size: 100% 50px;
+        .van-nav-bar__text{
+            color: #fff;
+        }
+        .van-icon{
+            color: #fff;
+        }
+    }
+    .list{
+      border-bottom: 1px solid #eeeeee;
+      &:last-child,
+      &:nth-last-child(2){
+        border-bottom: none;
+      }
+      img{
+        max-width: 100%;
+      }
+    }
+
+
+}
+</style>

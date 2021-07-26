@@ -1,0 +1,256 @@
+<template>
+  <div class="neayBy">
+    <div class="top" :class="{'dropdown':isDropdown}">
+      <p @click="$router.go(-1)" class="left-back">
+        <img src="../../images/goback1.png" alt />
+      </p>
+      <van-dropdown-menu>
+        <van-dropdown-item
+          v-model="value1"
+          :options="option1"
+          @open="openDropdrow"
+          @close="closeDropdrow"
+        />
+        <van-dropdown-item
+          v-model="value2"
+          :options="option2"
+          @open="openDropdrow"
+          @close="closeDropdrow"
+        />
+      </van-dropdown-menu>
+    </div>
+    <div class="map"></div>
+    <div class="addressCont">
+      <img src="../../images/jiantouUp.png" v-if="!ifShow" @click="showList" alt class="topImg" />
+      <img src="../../images/jiantouDown.png" v-if="ifShow" @click="hideList" alt class="topImg" />
+      <div class="contTop">
+        <p class="left">河南省郑州市金水区前程路明光河南省郑州市金水区前程路明光</p>
+        <p class="right">切换位置</p>
+      </div>
+      <div class="contCont" v-if="ifShow">
+        <div class="contLi">
+          <div class="leftImg">灯</div>
+          <div class="left">
+            <p>北京畅想家科技有限公司</p>
+            <p class="desc">邓鲁军 | 15595856645</p>
+          </div>
+          <div class="right">
+            <a :href="'tel:1346030202'">
+              <img src="../../images/tel.png" alt />
+            </a>
+          </div>
+        </div>
+        <div class="contLi">
+          <div class="leftImg">灯</div>
+          <div class="left">
+            <p>北京畅想家科技有限公司</p>
+            <p class="desc">邓鲁军 | 15595856645</p>
+          </div>
+          <div class="right">
+            <a :href="'tel:1346030202'">
+              <img src="../../images/tel.png" alt />
+            </a>
+          </div>
+        </div>
+        <div class="contLi">
+          <div class="leftImg">灯</div>
+          <div class="left">
+            <p>北京畅想家科技有限公司</p>
+            <p class="desc">邓鲁军 | 15595856645</p>
+          </div>
+          <div class="right">
+            <a :href="'tel:1346030202'">
+              <img src="../../images/tel.png" alt />
+            </a>
+          </div>
+        </div>
+        <div class="contLi">
+          <div class="leftImg">灯</div>
+          <div class="left">
+            <p>北京畅想家科技有限公司</p>
+            <p class="desc">邓鲁军 | 15595856645</p>
+          </div>
+          <div class="right">
+            <a :href="'tel:1346030202'">
+              <img src="../../images/tel.png" alt />
+            </a>
+          </div>
+        </div>
+        <div class="contLi">
+          <div class="leftImg">灯</div>
+          <div class="left">
+            <p>北京畅想家科技有限公司</p>
+            <p class="desc">邓鲁军 | 15595856645</p>
+          </div>
+          <div class="right">
+            <a :href="'tel:1346030202'">
+              <img src="../../images/tel.png" alt />
+            </a>
+          </div>
+        </div>
+        <p>已加载完毕</p>
+
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "nearBy",
+  data() {
+    return {
+      value1: 1,
+      value2: "b",
+      option1: [
+        { text: "全部", value: 0 },
+        { text: "我负责的客户", value: 1 },
+        { text: "新添加的客户", value: 2 },
+        { text: "老客户", value: 3 }
+      ],
+      option2: [
+        { text: "附近1km", value: "a" },
+        { text: "附近3km", value: "b" },
+        { text: "附近5km", value: "c" }
+      ],
+      isDropdown: false,
+      ifShow: false
+    };
+  },
+  mounted() {},
+  methods: {
+    openDropdrow() {
+      this.isDropdown = true;
+    },
+    closeDropdrow() {
+      this.isDropdown = false;
+    },
+    showList(){
+      this.ifShow = true
+    },
+    hideList(){
+      this.ifShow = false
+    }
+  }
+};
+</script>
+<style lang="less">
+.neayBy {
+  min-height: 100%;
+  .dropdown {
+    background: #ffffff;
+  }
+  .top {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    .left-back {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 40px;
+      height: 40px;
+      background: #ffffff;
+      border-radius: 50%;
+      z-index: 1;
+      text-align: center;
+      img {
+        height: 20px;
+        margin-top: 10px;
+      }
+    }
+    .van-dropdown-menu {
+      margin: 10px 20% 0 20%;
+      height: 40px;
+      border-radius: 40px;
+      box-shadow: -5px 0px 16px 0px rgba(238, 238, 238, 1);
+      .van-dropdown-menu__item:first-child {
+        position: relative;
+        &::after {
+          position: absolute;
+          content: " ";
+          right: -15px;
+          top: 10px;
+          bottom: 10px;
+          width: 1px;
+          background: #eeeeee;
+        }
+      }
+      .van-dropdown-menu__title {
+        font-size: 14px;
+        &::after {
+          opacity: 0.35;
+        }
+      }
+    }
+  }
+  .map {
+    height: calc(100vh - 69px);
+    background: #eeeeee;
+  }
+  .addressCont {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: 20px;
+    background: #ffffff;
+    .topImg {
+      position: absolute;
+      left: calc(50% - 45px);
+      top: -40px;
+      width: 90px;
+    }
+    .contTop {
+      padding: 15px;
+      display: flex;
+      font-size: 14px;
+      border-bottom: 1px solid #eeeeee;
+      .left {
+        background: url(../../images/dingwei1.png) no-repeat left center;
+        background-size: auto 16px;
+        padding-left: 20px;
+        justify-content: left;
+        width: calc(100% - 80px);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+      .right {
+        width: 80px;
+        justify-content: right;
+        text-align: right;
+        color: #1c92ff;
+      }
+    }
+    .contLi{
+      display: flex;
+      font-size: 14px;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eeeeee;
+      .leftImg{
+        background: #1C92FF;
+        color: #ffffff;
+        font-size: 15px;
+        width: 40px;
+        height: 40px;
+        border-radius: 30px;
+        line-height: 40px;
+        text-align: center;
+      }
+      .left{
+        padding: 0 10px;
+        width: calc(100% - 90px);
+        .desc{
+          color: #999999;
+        }
+      }
+      .right{
+        img{
+          width: 40px;
+        }
+      }
+    }
+  }
+}
+</style>

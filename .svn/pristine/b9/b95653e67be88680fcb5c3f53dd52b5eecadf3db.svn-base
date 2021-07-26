@@ -1,0 +1,477 @@
+<template>
+    <div class="genjinSel">
+        <van-nav-bar
+            left-text="客户跟进"
+            left-arrow
+            fixed
+            @click-left="leftBack"
+        />
+        <div class="marBottom">
+            <van-cell title="客户名称" :value="customerName" icon="http://sc.xfd365.com/crmImages/name.png" is-link @click="contactCcbSel" />
+        </div>
+        <div class="marBottom">
+            <van-cell title="跟进类型" :value="typeName" icon="http://sc.xfd365.com/crmImages/genjinType.png" is-link @click="isType=true" />
+            <!-- 时间修改为不可选择状态，默认当前时间 -->
+            <!-- <van-cell title="跟进时间" :value="time" icon="http://sc.xfd365.com/crmImages/genjinTime.png" is-link @click="isTime=true" /> -->
+            <van-cell title="跟进时间" :value="time" icon="http://sc.xfd365.com/crmImages/genjinTime.png" />
+            <van-cell class="getAddress" title="跟进地点" :value="address" icon="http://sc.xfd365.com/crmImages/dingwei.png" is-link @click="mapSearch" />
+            <baidu-map @ready="handler"></baidu-map>
+        </div>
+        <div class="marBottom">
+            <van-cell title="上传附件" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+            <div class="upload-images">
+              <div class="img-box" v-for="(item,index) in fileList" :key="index">
+                <div class="icon-po">
+                  <img class="image" :src="item">
+                  <div class="icon-close" @click="imgclose(index)">×</div>
+                </div>
+              </div>
+              <van-uploader
+                :after-read="afterRead"
+                multiple
+                class="icon-add"
+              ></van-uploader>
+            </div>
+        </div>
+        <div class="marBottom">
+            <van-cell title="跟进内容" icon="http://sc.xfd365.com/crmImages/genjinContent.png"></van-cell>
+            <van-field
+                v-model="message"
+                rows="2"
+                autosize
+                type="textarea"
+                placeholder="请输入跟进内容"
+            />
+        </div>
+        <div class="marBottom">
+            <!-- 客户修改为不可选择状态 -->
+            <!-- <van-cell title="客户名称" :value="customerName" icon="http://sc.xfd365.com/crmImages/customerName.png" is-link @click="isCustomer=true" /> -->
+            <van-cell title="归属人员" :value="userName" icon="http://sc.xfd365.com/crmImages/guishu.png" />
+        </div>
+
+        <button class="save" id="save" v-if="hidshowFooter" @click="saveInfo">保存</button>
+
+
+
+        <van-action-sheet v-model="isType" title="跟进类型" :actions="actions" @select="onSelect" :round="isRound" ></van-action-sheet>
+
+        
+    </div>
+</template>
+<script>
+import BaiduMap from 'vue-baidu-map/components/map/Map.vue'
+export default {
+  name: "genjinSel",
+  data() {
+    return {
+      isType: false,
+      actions: [
+        { name: "到访" },
+        { name: "电话" },
+        { name: "微信" },
+        { name: "短信" },
+        { name: "其他" }
+      ],
+      isRound: false,
+      typeName: "请选择",
+      time: "",
+      fileList: [],
+      message: "",
+      customerName: "请选择",
+      stationId: 0,
+      type: 0,
+      pics: '',
+      userName: '',
+      cls: '',
+      customer_id: 0,
+      address: '',
+      lnglat: '',
+      location: '',
+      locationlnglat: '',
+
+      docmHeight: document.documentElement.clientHeight,  //默认屏幕高度       
+      showHeight:  '0',   //实时屏幕高度        
+      hidshowFooter:true,  //显示或者隐藏footer,
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    this.userName = localStorage.getItem('userName')
+
+    window.onAndroid = this.onAndroid // 判断打开设备是否是Android手机
+    window.onGetLocation = this.onGetLocation
+    window.geoc = null
+    window.convertor = null
+    window.vue = this
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  } 
+  },
+  methods: {
+    leftBack(){
+      this.$router.push({
+        path: '/'
+      })
+    },
+    contactCcbSel(){
+      this.$router.push({
+        path: '/contactCcbSel',
+        query: {
+          customer_id: this.customer_id
+        }
+      })
+    },
+    onSelect(item, index) {
+      this.typeName = item.name;
+      this.isType = false;
+      this.type = index;
+    },
+    mapSearch(){
+      this.$router.push({
+        path: "/mapSearch",
+        query: {
+          from: 'genjinSel'
+        }
+      });
+    },
+    // 由于百度地图 JS API 只有 JSONP 一种加载方式，因此 BaiduMap 组件及其所有子组件的渲染只能是异步的。
+    // 因此，请使用在组件的 ready 事件来执行地图 API 加载完毕后才能执行的代码，不要试图在 vue 自身的生命周期中调用 BMap 类，更不要在这些时机修改 model 层。
+        handler ({BMap, map}) {
+            window.map = map; //注册为全局
+            var that = this;  // map方法中的this指向不对。所有申明一个。。小细节的东西
+            that.loading = 0
+              // 刚进入页面中的定位，需要向用户授权
+            var point = new BMap.Point(113.39852,34.897445);
+        
+            var geolocation = new BMap.Geolocation();
+            var geoc = new BMap.Geocoder();    
+            window.geoc = geoc
+
+            var convertor = new BMap.Convertor();
+            window.convertor = convertor
+
+            var isAndroid = localStorage.getItem('isAndroid')
+            if(isAndroid=='123'){
+              android.requestLocation()
+            }else{
+               geolocation.getCurrentPosition(function(r){
+                  if(this.getStatus() == BMAP_STATUS_SUCCESS){
+                    var pt = r.point
+                    geoc.getLocation(pt, function(rs){
+                      // console.log(rs)
+                      var addComp = rs.addressComponents;
+                      if(addComp.province){
+                        that.address = addComp.province + addComp.city + addComp.district + addComp.street + addComp.streetNumber;
+                        that.location = addComp.province + addComp.city + addComp.district + addComp.street + addComp.streetNumber;
+
+                        that.lnglat = rs.point.lng + ',' + rs.point.lat
+                        that.locationlnglat = rs.point.lng + ',' + rs.point.lat
+                      }
+                    }); 
+                  }
+                  else {
+                    alert('failed'+this.getStatus());
+                  }        
+                },{enableHighAccuracy: true})
+              
+            }
+
+
+            
+        },
+        onAndroid(){
+          // this.$isAndroid = true
+          localStorage.setItem('isAndroid','123')
+        },
+
+        // 执行完Android方法，获取坐标
+        onGetLocation(lat,lon){
+          var that = this
+          var centerGet = new BMap.Point(lon, lat)
+          var convertor = window.convertor;
+          var pointArr = [];
+          pointArr.push(centerGet);
+          convertor.translate(pointArr, 1, 5, function(data){
+            if(data.status === 0){
+              var center = new BMap.Point(data.points[0].lng, data.points[0].lat);
+              center = new BMap.Point(center.lng,center.lat)
+                geoc.getLocation(center, function(rs){
+                    var addComp = rs.addressComponents;
+                    if(addComp.province){
+                        that.address = addComp.province + addComp.city + addComp.district + addComp.street + addComp.streetNumber;
+                        that.location = addComp.province + addComp.city + addComp.district + addComp.street + addComp.streetNumber;
+                        
+                        that.lnglat = rs.point.lng + ',' + rs.point.lat
+                        that.locationlnglat = rs.point.lng + ',' + rs.point.lat
+                    }
+                  }); 
+            }
+          })
+
+
+          
+        },
+
+    afterRead (e) {
+      let token = localStorage.getItem("token");
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      if (e instanceof Array && e.length) { // 判断是否是多图上传 多图则循环添加进去
+        e.forEach(item => {
+          var formdata = new FormData();
+            formdata.append("token", token);
+            formdata.append("file", item.file)//第一个参数字符串可以填任意命名，第二个根据对象属性来找到file
+            instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+              if (res.data.errno === 0) {
+                this.$toast("上传成功");
+                this.fileList.push(res.data.data.url);
+              } else {
+                this.$toast(res.errmsg);
+              }
+            });
+        })
+      } else {
+        var formdata = new FormData();
+            formdata.append("token", token);
+            formdata.append("file", e.file)//第一个参数字符串可以填任意命名，第二个根据对象属性来找到file
+            instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+              if (res.data.errno === 0) {
+                this.$toast("上传成功");
+                this.fileList.push(res.data.data.url);
+              } else {
+                this.$toast(res.errmsg);
+              }
+            });
+      }
+    },
+    //删除预览图片按钮
+    imgclose (e) {
+      this.fileList.splice(e, 1)
+    },
+    saveInfo() {
+      this.pics = ''
+      if(this.fileList != ''){
+        this.fileList.forEach(ele=>{
+          this.pics += ele + '#'
+        })
+      }
+
+      var data = {};
+      data.type = this.type + 1;
+      data.file = this.pics;
+      data.content = this.message;
+      data.station_id = this.stationId;
+      data.follow_time = this.time;
+      data.customer_id = this.customer_id
+      data.address = this.address
+      data.lnglat = this.lnglat
+      data.cls = 2
+
+      if(this.customerName == "请选择"){
+        this.$toast("请选择跟进客户")
+        return
+      }
+      if(this.typeName == "请选择"){
+        this.$toast("请选择跟进类型")
+        return
+      }
+      
+      this.$api.stationFollow(data).then(res => {
+        this.$toast(res.errmsg);
+        if(res.errno === 0){
+          this.leftBack()
+        }
+      });
+    }
+  },
+  created() {
+    document.documentElement.scrollTop = 0
+    let aData = new Date();
+    this.time = aData.getFullYear() + '-' + (aData.getMonth() + 1) + '-' + aData.getDate()  
+      + ' ' + ((aData.getHours() < 10) ? ('0' + aData.getHours()) : (aData.getHours())) + ':'
+      + ((aData.getMinutes() < 10) ? ('0' + aData.getMinutes()) : (aData.getMinutes()) )+ ':' + 
+      ((aData.getSeconds() < 10) ? ('0' + aData.getSeconds()) : (aData.getSeconds()));
+    
+  },
+  beforeRouteEnter(to, from, next) {
+    document.documentElement.scrollTop = 0
+     let customer_id = to.query.customer_id
+     let customerName = to.query.customerName
+      // if(customer_id){
+      //     to.meta.customer_id = customer_id
+      //     to.meta.linker_name = customerName
+          
+      // }
+    to.meta.customer_id = customer_id
+    to.meta.customerName = customerName
+
+    let addressSel = to.query.addressSel
+    let lnglatSel = to.query.lnglatSel
+    // if(addressSel){
+    //   to.meta.addressSel = addressSel
+    // }
+    to.meta.addressSel = addressSel
+    to.meta.lnglatSel = lnglatSel
+
+    if (from.path == "/contactCcbSel") {
+      to.meta.isBack = true;
+    } else {
+      to.meta.isBack = false;
+    }
+    
+    next();
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.onAndroid = this.onAndroid // 判断打开设备是否是Android手机
+    window.onGetLocation = this.onGetLocation
+    window.geoc = null
+    window.convertor = null
+    window.vue = this
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  } 
+
+    if(this.$route.meta.customer_id){
+      this.customer_id = this.$route.meta.customer_id
+      this.customerName = this.$route.meta.customerName
+    }else if(this.$route.meta.addressSel){
+      this.address = this.$route.meta.addressSel
+      this.lnglat = this.$route.meta.lnglatSel
+    }else{
+      this.typeName = "请选择"
+      this.type = 0
+      let aData = new Date();
+      this.time = aData.getFullYear() + '-' + (aData.getMonth() + 1) + '-' + aData.getDate()  
+      + ' ' + ((aData.getHours() < 10) ? ('0' + aData.getHours()) : (aData.getHours())) + ':'
+      + ((aData.getMinutes() < 10) ? ('0' + aData.getMinutes()) : (aData.getMinutes()) )+ ':' + 
+      ((aData.getSeconds() < 10) ? ('0' + aData.getSeconds()) : (aData.getSeconds()));
+      this.fileList = []
+      this.pics = ''
+      this.message = ''
+      this.customerName = "请选择"
+      this.customer_id = 0
+      this.address = this.location
+      this.lnglat = this.locationlnglat
+    }
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+};
+</script>
+<style lang="less">
+.genjinSel {
+  min-height: calc(100% - 100px);
+  padding-top: 50px;
+  padding-bottom: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .getAddress .van-cell__title{
+    flex: 0.3;
+  }
+  .van-popup {
+    .van-action-sheet__header,
+    .van-action-sheet__item{
+      text-align: left;
+      padding: 0 20px;
+    }
+    .van-action-sheet__header{
+      font-size: 15px;
+    }
+    .van-action-sheet__item{
+      font-size: 14px;
+      height: 42px;
+      line-height: 42px;
+      &:active{
+        color: #1C92FF;
+        background:rgba(28,146,255,0.2);
+      }
+    }
+  }
+
+  .van-picker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+  }
+
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .upload-images {
+    padding: 0 20px 10px 20px;
+    .img-box {
+      display: inline-block;
+    }
+    .image {
+      width: 60px;
+      height: 60px;
+    }
+    .icon-add {
+      overflow: hidden;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    .icon-po {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      margin-right: 20px;
+      margin-top: 20px;
+    }
+    .icon-close {
+      position: absolute;
+      right: -8px;
+      top: -8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: red;
+      color: #fff;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+  .van-uploader__upload,
+  .van-uploader__preview-image{
+    width: 50px;
+    height: 50px;
+  }
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+  }
+}
+</style>

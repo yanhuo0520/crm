@@ -1,0 +1,686 @@
+<template>
+    <div class="customerGenjin">
+        <van-nav-bar
+            left-text="客户跟进"
+            left-arrow
+            fixed
+            @click-left="leftBack"
+        />
+        <div class="marBottom">
+            <van-cell title="跟进类型" :value="typeName" icon="http://sc.xfd365.com/crmImages/genjinType.png" is-link @click="isType=true" />
+            <!-- 时间修改为不可选择状态，默认当前时间 -->
+            <!-- <van-cell title="跟进时间" :value="time" icon="http://sc.xfd365.com/crmImages/genjinTime.png" is-link @click="isTime=true" /> -->
+            <van-cell title="跟进时间" :value="time" icon="http://sc.xfd365.com/crmImages/genjinTime.png" />
+            <van-cell class="getAddress" title="跟进地点" :value="address" icon="http://sc.xfd365.com/crmImages/dingwei.png" is-link @click="mapSearch" />
+            <baidu-map @ready="handler"></baidu-map>
+        </div>
+        <div class="marBottom">
+            <van-cell title="上传图片" icon="http://sc.xfd365.com/crmImages/pic.png" is-link></van-cell>
+            <van-uploader v-model="fileList1" :after-read="afterRead1" :before-delete="beforeDelete1" />
+        </div>
+        <div class="marBottom">
+            <van-cell title="跟进内容" icon="http://sc.xfd365.com/crmImages/genjinContent.png"></van-cell>
+            <van-field
+                v-model="message"
+                rows="2"
+                autosize
+                type="textarea"
+                placeholder="请输入跟进内容"
+            />
+        </div>
+        <div class="marBottom">
+           <van-cell title="站点统计" icon="http://sc.xfd365.com/crmImages/inzhandian.png"  is-link @click="siteStatiseAdd()" />
+        </div>
+        <div class="marBottom">
+            <!-- 客户修改为不可选择状态 -->
+            <!-- <van-cell title="客户名称" :value="customerName" icon="http://sc.xfd365.com/crmImages/customerName.png" is-link @click="isCustomer=true" /> -->
+            <van-cell title="客户名称" :value="customerName" icon="http://sc.xfd365.com/crmImages/name.png" />
+            <van-cell title="归属人员" :value="userName" icon="http://sc.xfd365.com/crmImages/guishu.png" />
+        </div>
+        
+
+        <button class="save" id="save" v-if="hidshowFooter" @click="saveInfo">保存</button>
+
+        <van-action-sheet v-model="isType" title="跟进类型" :actions="actions" @select="onSelect" :round="isRound" ></van-action-sheet>
+
+        
+        <van-overlay :show="isTime" @click="isTime = false" />
+        
+        <van-datetime-picker
+        v-model="currentDate"
+        type="date"
+        :min-date="minDate"
+        v-show="isTime"
+        @confirm="handleTime"
+        @cancel="isTime=false"
+        />
+    </div>
+</template>
+<script>
+import Exif from "exif-js";
+export default {
+  name: "customerGenjin",
+  data() {
+    return {
+      isType: false,
+      actions: [
+        { name: "到访" },
+        { name: "电话" },
+        { name: "微信" },
+        { name: "短信" },
+        { name: "其他" }
+      ],
+      isRound: false,
+      typeName: "请选择",
+      isTime: false,
+      currentDate: new Date(),
+      minDate: new Date(1900, 1, 1),
+      time: "请选择",
+      fileList1: [],
+      pics: "",
+      picsArray: [],
+      message: "",
+      customer: [
+        { name: "北京新希望有限责任公司" },
+        { name: "北京新希望有限责任公司" },
+        { name: "北京新希望有限责任公司" }
+      ],
+      customerName: "请选择",
+      stationId: 0,
+      type: 0,
+      userName: '',
+      cls: '',
+      customer_id: 0,
+      address: '',
+      lnglat: '',
+      location: '',
+      locationlnglat: '',
+      keyword: '',
+      site_id: '',
+
+      docmHeight: document.documentElement.clientHeight,  //默认屏幕高度       
+      showHeight:  '0',   //实时屏幕高度        
+      hidshowFooter:true,  //显示或者隐藏footer, 
+
+      filesObj: {
+        name: "",
+        type: "",
+        index: ''
+      },
+      headerImage: "",
+      picValue: "",
+      upImgUrl: "",
+
+      ifSave: false
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null
+    window.convertor = null
+    window.vue = this
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+    } 
+    
+    document.documentElement.scrollTop = 0;
+
+    this.stationId = this.$route.query.station_id;
+    this.customerName = this.$route.query.customerName
+    this.customer_id = this.$route.query.customer_id
+    this.cls = this.$route.query.cls
+    // console.log(localStorage.getItem("site_id_new"))
+    if(localStorage.getItem("site_id_new")){
+      this.site_id = localStorage.getItem("site_id_new")
+    }else{
+      this.site_id = this.$route.query.site_id
+    }
+    
+    this.userName = localStorage.getItem('userName')
+
+  },
+  methods: {
+    leftBack(){
+      // this.$router.go(-1)
+      localStorage.removeItem("siteAddFrom")
+      localStorage.removeItem("site_id_new")
+      if(this.keyword){
+        if(this.cls == 2){
+          this.$router.push({
+            path: "/ccbSearch"
+          });
+        }else{
+          this.$router.push({
+            path: "/search"
+          });
+        }
+      }else{
+        this.$router.push({
+          path: "/ccbCustomer"
+        });
+      }
+    },
+    siteStatiseAdd(){
+      let id;
+      if(this.stationId){
+        id = this.stationId
+      }else if(this.customer_id){
+        id = this.customer_id
+      }
+      this.$router.push({
+        path: "/siteAdd",
+        query: {
+          id: id,
+          site_id: this.site_id,
+          cls: this.cls
+        }
+      });
+      localStorage.setItem("siteAddFrom", "genJin")
+    },
+    onSelect(item, index) {
+      this.typeName = item.name;
+      this.isType = false;
+      this.type = index;
+    },
+    mapSearch(){
+      this.$router.push({
+        path: "/mapSearch",
+        query: {
+          from: 'customerGenjin',
+          cls: this.cls,
+          keyword: this.keyword
+        }
+      });
+    },
+    handleTime(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+      this.time = datetime;
+      this.isTime = false;
+    },
+    // 由于百度地图 JS API 只有 JSONP 一种加载方式，因此 BaiduMap 组件及其所有子组件的渲染只能是异步的。
+    // 因此，请使用在组件的 ready 事件来执行地图 API 加载完毕后才能执行的代码，不要试图在 vue 自身的生命周期中调用 BMap 类，更不要在这些时机修改 model 层。
+        handler ({BMap, map}) {
+            window.map = map; //注册为全局
+            var that = this;  // map方法中的this指向不对。所有申明一个。。小细节的东西
+            that.loading = 0
+              // 刚进入页面中的定位，需要向用户授权
+            var point = new BMap.Point(113.39852,34.897445);
+        
+            var geolocation = new BMap.Geolocation();
+            var geoc = new BMap.Geocoder();    
+            window.geoc = geoc
+
+            var convertor = new BMap.Convertor();
+            window.convertor = convertor
+
+            if(typeof android != 'undefined'){
+              android.requestLocation()
+            }else{
+               geolocation.getCurrentPosition(function(r){
+                  if(this.getStatus() == BMAP_STATUS_SUCCESS){
+                    var pt = r.point
+                    geoc.getLocation(pt, function(rs){
+                      // console.log(rs)
+                      if(rs.surroundingPois.length > 0){ // 附近的POI点，默认取第一个值
+                        if(rs.surroundingPois[0].address.length > 1){ // eg:地铁站address为' '
+                          that.address = rs.surroundingPois[0].address  + '(' + rs.surroundingPois[0].title + ')'
+                          that.location = rs.surroundingPois[0].address  + '(' + rs.surroundingPois[0].title + ')'
+                        }else{
+                          that.address = rs.surroundingPois[0].title
+                          that.location = rs.surroundingPois[0].title
+                        }
+                        
+
+                        that.lnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                        that.locationlnglat = rs.surroundingPois[0].point.lng + ',' + rs.surroundingPois[0].point.lat
+                      }else{
+                        that.address = rs.address;
+                        that.location = rs.address;
+                        that.lnglat = rs.point.lng + ',' + rs.point.lat
+                        that.locationlnglat = rs.point.lng + ',' + rs.point.lat
+                      }
+                    }); 
+                  }
+                  else {
+                    alert('failed'+this.getStatus());
+                  }        
+                },{enableHighAccuracy: true})
+              
+            }
+
+
+            
+        },
+        // 执行Android方法获取位置信息----（高德坐标转换成百度坐标）
+        locationGDAll(location){
+          let that = this
+          let X_PI = Math.PI * 3000.0 / 180.0;
+          let x = location.longitude, y = location.latitude;
+          let z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * X_PI);
+          let theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * X_PI);
+
+          that.lnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.locationlnglat = (z * Math.cos(theta) + 0.0065) + ',' + (z * Math.sin(theta) + 0.006);
+          that.address = location.address
+          that.location = location.address
+        },
+    afterRead1(file, detail) {
+      let that = this;
+      that.filesObj.name = file.file.name; // 获取文件名
+      that.filesObj.type = file.file.type; // 获取类型
+      that.filesObj.index = detail.index
+      that.fileList1[that.filesObj.index].content = ''
+      that.fileList1[that.filesObj.index].status = 'uploading'
+      that.fileList1[that.filesObj.index].message = '上传中...'
+      that.picValue = file.file; // 文件流
+      that.imgPreview(this.picValue);
+    },
+    // 处理图片
+    imgPreview(file) {
+      let that = this;
+      let Orientation;
+      //去获取拍照时的信息，解决拍出来的照片旋转问题
+      Exif.getData(file, function() {
+        Orientation = Exif.getTag(this, "Orientation");
+      });
+      // 看支持不支持FileReader
+      if (!file || !window.FileReader) return;
+      if (/^image/.test(file.type)) {
+        let reader = new FileReader(); // 创建一个reader
+        reader.readAsDataURL(file); // 将图片2将转成 base64 格式
+        reader.onloadend = function() {
+          // 读取成功后的回调
+          // console.log(this.result)
+          let result = this.result;
+          let img = new Image();
+          img.src = result;
+          //判断图片是否大于500K,是就直接上传，反之压缩图片
+          if (this.result.length <= 500 * 1024) {
+            that.headerImage = this.result;
+            that.postImg();
+          } else {
+            img.onload = function() {
+              let data = that.compress(img, Orientation);
+              that.headerImage = data;
+              that.postImg();
+            };
+          }
+        };
+      }
+    },
+    // 压缩图片
+    compress(img, Orientation) {
+      let canvas = document.createElement("canvas");
+      let ctx = canvas.getContext("2d");
+
+      let tCanvas = document.createElement("canvas");
+      let tctx = tCanvas.getContext("2d");
+
+      let width = img.width;
+      let height = img.height;
+      //如果图片大于四百万像素，计算压缩比并将大小压至400万以下
+      let ratio;
+      if ((ratio = (width * height) / 4000000) > 1) {
+        // console.log("大于400万像素");
+        ratio = Math.sqrt(ratio);
+        width /= ratio;
+        height /= ratio;
+      } else {
+        ratio = 1;
+      }
+      canvas.width = width;
+      canvas.height = height; //        铺底色
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height); //如果图片像素大于100万则使用瓦片绘制
+      let count;
+      if ((count = (width * height) / 1000000) > 1) {
+        // console.log("超过100W像素");
+        count = ~~(Math.sqrt(count) + 1); //计算要分成多少块瓦片 //            计算每块瓦片的宽和高
+        let nw = ~~(width / count);
+        let nh = ~~(height / count);
+        tCanvas.width = nw;
+        tCanvas.height = nh;
+        for (let i = 0; i < count; i++) {
+          for (let j = 0; j < count; j++) {
+            tctx.drawImage(img, i * nw * ratio, j * nh * ratio, nw * ratio, nh * ratio, 0, 0, nw, nh);
+            ctx.drawImage(tCanvas, i * nw, j * nh, nw, nh);
+          }
+        }
+      } else {
+        ctx.drawImage(img, 0, 0, width, height);
+      }
+      //修复ios上传图片的时候 被旋转的问题
+       if (Orientation != "" && Orientation != 1) {
+          switch (Orientation) {
+              case 6: //需要顺时针（向左）90度旋转
+                  this.rotateImg(img, "left", canvas);
+                  break;
+               case 8: //需要逆时针（向右）90度旋转
+                   this.rotateImg(img, "right", canvas);
+                   break;
+               case 3: //需要180度旋转
+                   this.rotateImg(img, "right", canvas); //转两次
+                   this.rotateImg(img, "right", canvas);
+                   break;
+           }
+        }
+            //进行最小压缩
+            let ndata = canvas.toDataURL("image/jpeg", 0.1);
+            tCanvas.width = tCanvas.height = canvas.width = canvas.height = 0;
+            return ndata;
+    },
+    // 旋转图片
+        rotateImg(img, direction, canvas) {
+            //最小与最大旋转方向，图片旋转4次后回到原方向
+            const min_step = 0;
+            const max_step = 3;
+            if (img == null) return;
+            //img的高度和宽度不能在img元素隐藏后获取，否则会出错
+            let height = img.height;
+            let width = img.width;
+            let step = 2;
+            if (step == null) {
+                step = min_step;
+            }
+            if (direction == "right") {
+                step++;
+                //旋转到原位置，即超过最大值
+                step > max_step && (step = min_step);
+            } else {
+                step--;
+                step < min_step && (step = max_step);
+            }
+            //旋转角度以弧度值为参数
+            let degree = (step * 90 * Math.PI) / 180;
+            let ctx = canvas.getContext("2d");
+            switch (step) {
+                case 0:
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0);
+                    break;
+                case 1:
+                    canvas.width = height;
+                    canvas.height = width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, 0, -height);
+                    break;
+                case 2:
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, -width, -height);
+                    break;
+                case 3:
+                    canvas.width = height;
+                    canvas.height = width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, -width, 0);
+                    break;
+            }
+        },
+        //将base64转换为文件
+        dataURLtoFile(dataurl) {
+            var arr = dataurl.split(","),
+                bstr = atob(arr[1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], this.filesObj.name, {
+                type: this.filesObj.type
+            });
+        },
+         //接口上传图片
+        postImg(){
+          let file = this.dataURLtoFile(this.headerImage);
+          let token = localStorage.getItem("token");
+          var formdata = new FormData();
+          formdata.append("token", token);
+          formdata.append("file", file)
+          const instance = this.$axios.create({
+            //withCredentials:true
+          });
+          instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+            if (res.data.errno === 0) {
+              this.$toast("上传成功");
+              this.fileList1[this.filesObj.index].content = res.data.data.url
+              this.fileList1[this.filesObj.index].status = 'done'
+              this.fileList1[this.filesObj.index].message = ''
+              this.picsArray.push(res.data.data.url);
+            } else {
+              this.$toast(res.errmsg);
+              this.fileList1[this.filesObj.index].status = 'failed'
+              this.fileList1[this.filesObj.index].message = '上传失败'
+            }
+          }, err=>{
+            // console.log(err)
+            this.fileList1[this.filesObj.index].status = 'failed'
+            this.fileList1[this.filesObj.index].message = '上传失败'
+          });
+
+        },
+    beforeDelete1(file ,detail){
+      let index = detail.index
+      this.fileList1.splice(index, 1);
+      this.picsArray.splice(index, 1);
+    },
+    saveInfo() {
+      this.pics = "";
+      if (this.picsArray != "") {
+        this.picsArray.forEach(ele => {
+          this.pics += ele + "#";
+        });
+      }
+
+      var data = {};
+      data.type = this.type + 1;
+      data.file = this.pics;
+      data.content = this.message;
+      data.station_id = this.stationId;
+      data.follow_time = this.time;
+      data.customer_id = this.customer_id;
+      data.address = this.address
+      data.lnglat = this.lnglat
+      data.cls = this.cls
+
+      if(this.typeName == "请选择"){
+        this.$toast("请选择跟进类型")
+        return
+      }
+
+      this.$api.stationFollow(data).then(res => {
+        this.$toast(res.errmsg);
+        if(res.errno === 0){
+          this.ifSave = true
+          this.leftBack();
+        }
+      });
+    }
+  },
+  created() {
+    let aData = new Date();
+    // this.time = aData.getFullYear() + '-' + (aData.getMonth() + 1) + '-' + aData.getDate()  + ' ' + aData.getHours() + ':' + aData.getMinutes() + ':' + aData.getSeconds() ;
+    this.time = aData.getFullYear() + '-' + (aData.getMonth() + 1) + '-' + aData.getDate()  
+      + ' ' + ((aData.getHours() < 10) ? ('0' + aData.getHours()) : (aData.getHours())) + ':'
+      + ((aData.getMinutes() < 10) ? ('0' + aData.getMinutes()) : (aData.getMinutes()) )+ ':' + 
+      ((aData.getSeconds() < 10) ? ('0' + aData.getSeconds()) : (aData.getSeconds()));
+  },
+  beforeRouteEnter(to, from, next){
+     let customer_id = to.query.customer_id
+     let station_id = to.query.station_id
+     let customerName = to.query.customerName
+     let cls = to.query.cls
+     let keyword = to.query.keyword
+     let site_id;
+     if(localStorage.getItem("site_id_new")){
+       site_id = localStorage.getItem("site_id_new")
+     }else{
+       site_id = to.query.site_id
+     }
+     
+
+    to.meta.customer_id = customer_id
+    to.meta.station_id = station_id
+    to.meta.customerName = customerName
+    to.meta.cls = cls
+    to.meta.keyword = keyword
+    to.meta.site_id = site_id
+
+    let addressSel = to.query.addressSel
+    to.meta.addressSel = addressSel
+    let lnglatSel = to.query.lnglatSel
+    to.meta.lnglatSel = lnglatSel
+    
+    if (from.path == "/mapSearch") {
+      to.meta.isBack = true;
+    } else {
+      to.meta.isBack = false;
+    }
+    next();
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    window.locationGDAll = this.locationGDAll
+    window.geoc = null
+    window.convertor = null
+    window.vue = this
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+	  } 
+    
+      this.cls = this.$route.meta.cls
+      this.keyword = this.$route.meta.keyword
+    if (!this.$route.meta.isBack) {  // 不缓存
+      // console.log("不缓存")
+      document.documentElement.scrollTop = 0;
+      this.stationId = this.$route.meta.station_id
+      this.customer_id = this.$route.meta.customer_id
+      this.customerName = this.$route.meta.customerName
+      this.site_id = this.$route.meta.site_id
+    }
+    
+    if(this.$route.meta.addressSel){
+      this.address = this.$route.meta.addressSel
+      this.lnglat = this.$route.meta.lnglatSel
+    }else{
+      this.typeName = "请选择"
+      this.type = 0
+      let aData = new Date();
+      this.time = aData.getFullYear() + '-' + (aData.getMonth() + 1) + '-' + aData.getDate()  
+      + ' ' + ((aData.getHours() < 10) ? ('0' + aData.getHours()) : (aData.getHours())) + ':'
+      + ((aData.getMinutes() < 10) ? ('0' + aData.getMinutes()) : (aData.getMinutes()) )+ ':' + 
+      ((aData.getSeconds() < 10) ? ('0' + aData.getSeconds()) : (aData.getSeconds()));
+      this.fileList1 = [];
+      this.pics = "";
+      this.picsArray = [];
+      if(localStorage.getItem("ifSaveGenJin")){
+        this.message = ''
+      }
+      // this.message = ''
+      this.address = this.location
+      this.lnglat = this.locationlnglat
+      this.ifSave =false
+    }
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+  // 在填写跟进内容非正常退出CRM时，实现实时保存功能、云保存	
+  beforeRouteLeave(to, from, next){
+    if(this.ifSave){
+      localStorage.setItem("ifSaveGenJin", 1)
+      // console.log("保存离开")
+    }else{
+      localStorage.removeItem("ifSaveGenJin")
+      // console.log("未保存离开")
+    }
+    next();
+  }
+};
+</script>
+<style lang="less">
+.customerGenjin {
+  // min-height: 100%;
+  min-height: calc(100% - 100px);
+  padding-top: 50px;
+  padding-bottom: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .getAddress .van-cell__title{
+    flex: 0.3;
+  }
+  .van-popup {
+    .van-action-sheet__header,
+    .van-action-sheet__item{
+      text-align: left;
+      padding: 0 20px;
+    }
+    .van-action-sheet__header{
+      font-size: 15px;
+    }
+    .van-action-sheet__item{
+      font-size: 14px;
+      height: 42px;
+      line-height: 42px;
+      &:active{
+        color: #1C92FF;
+        background:rgba(28,146,255,0.2);
+      }
+    }
+  }
+
+  .van-picker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+  }
+
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  
+  .van-uploader{
+    padding: 10px 15px 0 15px;
+  }
+  .van-uploader__preview{
+    margin-right: 15px;
+    margin-bottom: 15px;
+  }
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+  }
+}
+</style>

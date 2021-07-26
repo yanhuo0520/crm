@@ -1,0 +1,271 @@
+<template>
+  <div class="trackListPersonal">
+    <van-nav-bar
+      left-text="我的轨迹"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+    />
+    <div class="searchCont" @click="dateShow = true">
+      <input type="text" placeholder="请选择搜索日期" v-model="keyword" readonly />
+      <img src="../../images/date1.png" alt  />
+    </div>
+    
+    <van-overlay :show="dateShow" @click="closeDateTime" />
+    <van-datetime-picker
+      v-model="currentDate"
+      type="date"
+      :min-date="minDate"
+      :max-date="maxDate"
+      v-show="dateShow"
+      @confirm="handleTime"
+      @cancel="closeDateTime"
+    />
+    <!-- 普通身份 -->
+    <ul class="contUl" v-if="lists != ''">
+      <li v-for="(item, index) in lists" :key="index" @click="trackDetail(item.date)">
+        <img src="../../images/avatar1.png" alt />
+        {{item.date}}的轨迹
+      </li>
+    </ul>
+    <div v-else-if="lists == '' && keyword" class="zanwu">
+      <span>暂无<span class="tip">"{{keyword}}"</span>的轨迹</span>
+    </div>
+    <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "trackListPersonal",
+  data() {
+    return {
+      loading: 1,
+      role: localStorage.getItem("role"),
+      dateShow: false,
+      currentDate: new Date(),
+      minDate: new Date(2020, 0, 1),
+      maxDate: new Date(),
+      keyword: "",
+      page: 1,
+      pageSize: 20,
+      totalPage: 1,
+      lists: []
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+    this.getList();
+    document.documentElement.scrollTop = 0;
+    window.addEventListener("scroll", this.scrollBottomTrackPer);
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    },
+    scrollBottomTrackPer(e) {
+      let that = this;
+      var scrollTop =
+        e.target.documentElement.scrollTop || e.target.body.scrollTop;
+      let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+      let scrollHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      ); /*文档完整的高度*/
+      if (
+        scrollHeight - clientHeight - scrollTop <= 0 &&
+        that.page < that.totalPage
+      ) {
+        that.page += 1;
+        that.loading = 1;
+        that.getList();
+      }
+    },
+    handleTime(value) {
+      var d = new Date(value);
+      var datetime = d.getFullYear() + "-" + 
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" + 
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+      this.keyword = datetime;
+      this.page = 1
+      this.dateShow = false;
+      this.getList()
+    },
+    closeDateTime(){
+      this.dateShow = false
+      this.keyword = ''
+      this.page = 1
+      this.getList()
+    },
+    trackDetail(date) {
+      this.$router.push({
+        path: "/trackDetail",
+        query: {
+          lat_time: date,
+          end_time: date,
+          user_id: localStorage.getItem("userId"),
+          user_name: localStorage.getItem("userName")
+        }
+      });
+    },
+    // 员工列表
+    getList() {
+      let that = this;
+      let data = {};
+      data.page = that.page;
+      data.size = that.pageSize;
+      data.keyword = that.keyword;
+      // console.log(data)
+      this.$api.timeLists(data).then(res => {
+        that.totalPage = res.data.total;
+        if (res.errno === 0) {
+          if (that.page == 1) {
+            that.loading = 0;
+            that.lists = res.data.data;
+          } else if (res.data.data.length > 0) {
+            that.lists.push(...res.data.data);
+            if (
+              res.data.data.length < that.pageSize ||
+              (res.data.data.length == that.pageSize &&
+                that.page == that.totalPage)
+            ) {
+              that.loading = 0;
+            }
+          } else if (
+            that.page == that.totalPage ||
+            (res.data.data.length == that.pageSize &&
+              that.page == that.totalPage)
+          ) {
+            that.loading = 0;
+          }
+
+        } else {
+          this.loading = 0;
+          this.lists = []
+          this.$toast(res.errmsg);
+        }
+      });
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if(from.path == "/trackDetail"){
+      to.meta.isBack = true;
+    }else{
+      to.meta.isBack = false;
+    }
+    next()
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    if(!this.$route.meta.isBack){ // 不缓存
+      document.documentElement.scrollTop = 0;
+      this.page = 1
+      this.keyword = ''
+
+      this.getList();
+    }
+    this.$route.meta.isBack = false;
+
+  },
+  destroyed() {
+      window.removeEventListener('scroll', this.scrollBottomTrackPer);//监听页面滚动事件
+    }
+};
+</script>
+<style lang="less">
+.trackListPersonal {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+    .van-nav-bar__right img {
+      width: 18px;
+    }
+  }
+  .searchCont {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #AAAAAA;
+    }
+    ::-webkit-input-placeholder {
+      color: #AAAAAA;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 20px;
+      padding: 6px 15px;
+    }
+  }
+  .contUl {
+    font-size: 14px;
+    color: #434343;
+    background: #ffffff;
+    li {
+      padding: 10px 16px;
+
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #eeeeee;
+      background: url("../../images/jiantou.png") no-repeat calc(100% - 16px);
+      background-size: auto 14px;
+    }
+    img {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+  }
+  .van-picker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+    .tip{
+      color: red;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

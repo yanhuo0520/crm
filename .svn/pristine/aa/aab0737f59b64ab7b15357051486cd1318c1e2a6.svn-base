@@ -1,0 +1,494 @@
+<template>
+  <div class="dailyDetail">
+    <div class="top">
+      <p @click="leftBack">
+        <img src="../../images/goback.png" alt />
+        <span>{{userName}}的日报</span>
+      </p>
+      <ul>
+        <li>
+          <span>{{reportData.station}}</span>
+          <span>新增客户</span>
+        </li>
+        <li>
+          <span>{{reportData.follow}}</span>
+          <span>跟进客户</span>
+        </li>
+        <li>
+          <span>{{reportData.bai_follow}}</span>
+          <span>拜访客户</span>
+        </li>
+        <li>
+          <span>{{reportData.zong}}</span>
+          <span>管理客户</span>
+        </li>
+      </ul>
+    </div>
+    <div class="content">
+      <div class="marBottom">
+        <van-cell title="报告时间" :value="detailCont.add_time" icon="http://sc.xfd365.com/crmImages/genjinTime.png">
+        </van-cell>
+        <van-cell class="getAddress" title="所在位置" :value="detailCont.address"
+          icon="http://sc.xfd365.com/crmImages/dingwei.png" />
+      </div>
+      <van-tabs v-model="active" color="#1c92ff" sticky>
+        <van-tab title="业绩填报">
+          <div class="marBottom">
+            <van-field readonly label="拜访业主数" :left-icon="require('../../images/person2.png')" input-align="right"
+              v-model="detailCont.customer" />
+           <!-- <van-field readonly label="拜访银行客户数" class="label8" :left-icon="require('../../images/bank1.png')"
+              input-align="right" v-model="detailCont.bank" />
+            <van-field readonly type="number" label="组织活动次数" :left-icon="require('../../images/huodong.png')"
+              input-align="right" v-model="detailCont.activity" />
+            <van-field readonly type="number" label="活动参与人数" :left-icon="require('../../images/num1.png')"
+              input-align="right" v-model="detailCont.people" />
+            <van-field readonly placeholder="请输入电话沟通数" type="number" label="电话沟通数"
+              :left-icon="require('../../images/tel2.png')" input-align="right" v-model="detailCont.tel_num" /> -->
+            <van-field readonly type="number" label="裕农通APP推广数" class="label8"
+              :left-icon="require('../../images/num2.png')" input-align="right" v-model="detailCont.app" />
+            <van-field readonly type="number" label="签约客户数" :left-icon="require('../../images/num3.png')"
+              input-align="right" v-model="detailCont.sign" />
+            <van-field readonly type="number" label="收集办卡资料数" class="label8"
+              :left-icon="require('../../images/num4.png')" input-align="right" v-model="detailCont.card_information" />
+            <van-field readonly type="number" label="发卡数" :left-icon="require('../../images/faka.png')"
+              input-align="right" v-model="detailCont.card" />
+            <van-field readonly type="number" label="手机银行开通数" class="label8"
+              :left-icon="require('../../images/num5.png')" input-align="right" v-model="detailCont.mobile_bank" />
+            <van-field readonly type="number" label="裕农通公众号关注数" class="label10"
+              :left-icon="require('../../images/wx.png')" input-align="right" v-model="detailCont.yu_weixin" />
+            <van-field readonly type="number" label="快捷支付绑卡数" class="label8"
+              :left-icon="require('../../images/num6.png')" input-align="right" v-model="detailCont.fast_pay" />
+            <van-field readonly type="number" label="互动触摸屏维护数" class="label8"
+              :left-icon="require('../../images/num7.png')" input-align="right" v-model="detailCont.ping" />
+            <van-field readonly type="number" label="企业微信添加数" class="label8" :left-icon="require('../../images/wx.png')"
+              input-align="right" v-model="detailCont.weixin" />
+            <van-field readonly type="number" label="营销推广杨光村务平台" class="label12" :left-icon="require('../../images/wx.png')"
+              input-align="right" v-model="detailCont.yangguang" />
+            <van-field readonly type="number" label="裕农块贷地押云贷" class="label10" :left-icon="require('../../images/wx.png')"
+              input-align="right" v-model="detailCont.yunong" />
+            <van-field readonly type="number" label="翼时办下载数" class="label8" :left-icon="require('../../images/wx.png')"
+              input-align="right" v-model="detailCont.jishiban" />
+            <van-cell title="详细工作内容" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+            <van-field readonly rows="3" autosize type="textarea" v-model="detailCont.now_summary" />
+          </div>
+          <div class="marBottom">
+            <van-cell title="上传图片" icon="http://sc.xfd365.com/crmImages/pic.png" is-link></van-cell>
+            <!-- <van-uploader v-model="fileList1" multiple /> -->
+            <van-uploader v-model="fileList1" :preview-full-image="previewFullImage" :deletable="deletable"
+              class="uploadCont" :show-upload="showUpload" @click-preview="clickPreview" />
+            <div class="image-preview" v-if="ifPreview">
+              <van-image-preview v-model="ifPreview" :images="thumbListPre" :loop="isLoop"
+                :startPosition="startPosition" @change="onChange" @close="onClose()">
+                <template v-slot:index>{{pageIn}} / {{totalPage}}</template>
+                <div slot="cover" class="color-high">
+                  <van-icon name="down" class="down-img" @click="downLoadHandle" />
+                </div>
+              </van-image-preview>
+            </div>
+
+
+          </div>
+          <div class="marBottom">
+            <van-cell title="上传附件" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+            <van-uploader v-model="fileList2" multiple :deletable="deletable" :show-upload="showUpload"
+              class="uploadCont" />
+          </div>
+          <div class="marBottom">
+            <van-cell title="明日计划" icon="http://sc.xfd365.com/crmImages/plan.png"></van-cell>
+            <van-field rows="2" autosize type="textarea" readonly :value="detailCont.future_plan" />
+          </div>
+        </van-tab>
+        <van-tab title="个人费用填报">
+          <div class="marBottom">
+            <van-field readonly label="行程地点" :left-icon="require('../../images/xingcheng.png')" input-align="right"
+              v-model="detailCont.travel" />
+            <!-- <van-field readonly label="里程数" :left-icon="require('../../images/chefei.png')" input-align="right"
+              v-model="detailCont.km" /> -->
+
+            <van-field readonly label="加油发票额" :left-icon="require('../../images/youfei.png')" input-align="right"
+              v-model="detailCont.oil" />
+            <van-field readonly label="公共车辆费" :left-icon="require('../../images/bus.png')" input-align="right"
+              v-model="detailCont.pub" />
+            <van-field readonly label="过路过桥费" :left-icon="require('../../images/gaosu.png')" input-align="right"
+              v-model="detailCont.gaosu" />
+            <van-field readonly label="停车费" :left-icon="require('../../images/stop.png')" input-align="right"
+              v-model="detailCont.tingche" />
+            <van-field readonly label="飞机票" :left-icon="require('../../images/plane.png')" input-align="right"
+              v-model="detailCont.plane" />
+            <van-field readonly label="火车票" :left-icon="require('../../images/inCity.png')" input-align="right"
+              v-model="detailCont.train" />
+            <van-field readonly label="住宿费" :left-icon="require('../../images/zhusu.png')" input-align="right"
+              v-model="detailCont.hotel" />
+            <van-field readonly label="差旅补助" :left-icon="require('../../images/chailv.png')" input-align="right"
+              v-model="detailCont.chailv" />
+          </div>
+          <!-- 先不要 -->
+          <!-- <div class="marBottom">
+            <van-cell center title="是否有招待">
+              <template #right-icon>
+                <van-switch v-model="ifZhaoDai" size="24" disabled />
+              </template>
+            </van-cell>
+            <template v-if="ifZhaoDai">
+              <van-field label="招待费用" :left-icon="require('../../images/zhaodai.png')" input-align="right"
+                v-model="detailCont.entertain_expenses" />
+              <van-cell title="招待说明">
+                <template #icon>
+                  <img src="../../images/rizhi.png" alt="" />
+                </template>
+              </van-cell>
+              <van-field rows="3" readonly autosize type="textarea" v-model="detailCont.entertain_note" />
+            </template>
+
+          </div> -->
+
+          <div class="marBottom">
+            <van-cell center title="是否有其他费用">
+              <template #right-icon>
+                <van-switch v-model="ifOther" size="24" disabled />
+              </template>
+            </van-cell>
+            <template v-if="ifOther">
+              <van-field readonly label="其他" :left-icon="require('../../images/qita.png')" input-align="right"
+                v-model="detailCont.other_expenses" />
+              <van-cell title="其他费用说明">
+                <template #icon>
+                  <img src="../../images/rizhi.png" alt="" />
+                </template>
+              </van-cell>
+              <van-field readonly rows="2" autosize type="textarea" v-model="detailCont.other_note" />
+              <van-cell title="请上传其他费用图片">
+                <template #icon>
+                  <img src="../../images/pic.png" alt="" />
+                </template>
+              </van-cell>
+              <van-uploader v-model="fileList3" multiple :deletable="deletable" :show-upload="showUpload"
+                class="uploadCont">
+                <img src="../../images/jia.png" />
+                <p>上传费用图片</p>
+              </van-uploader>
+            </template>
+
+          </div>
+        </van-tab>
+      </van-tabs>
+
+      <div class="marBottom">
+        <van-cell title="汇报对象" icon="http://sc.xfd365.com/crmImages/name.png"></van-cell>
+        <ul class="selectUl">
+          <li v-for="(item, index) in detailCont.report_username" :key="index">
+            <span>{{item.substr(0, 1)}}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  export default {
+    name: "dailyDetail",
+    data() {
+      return {
+        active: 0,
+        userName: '',
+        report_id: '',
+        start_time: '',
+        end_time: '',
+        // ifZhaoDai: false,
+        ifOther: false,
+        fileList1: [],
+        fileList2: [],
+        fileList3: [],
+        reportData: {},
+        detailCont: {},
+
+        previewFullImage: false, // 是否在点击预览图后展示全屏图片预览
+        deletable: false, // 是否展示删除按钮
+        showUpload: false, // 是否展示上传区域
+        isLoop: true,
+        ifPreview: false,
+        thumbListPre: [],
+        downUrl: '',
+        startPosition: 1,
+        pageIn: 1,
+        totalPage: 0
+      };
+    },
+    mounted() {
+      window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+      document.documentElement.scrollTop = 0;
+      this.userName = localStorage.getItem("userName")
+      let report_id = this.$route.query.report_id
+      let start_time = this.$route.query.start_time
+      let end_time = this.$route.query.end_time
+      this.report_id = report_id
+      this.start_time = start_time
+      this.end_time = end_time
+      this.getReport()
+      this.getDetail()
+    },
+    methods: {
+      leftBack() {
+        this.$router.go(-1)
+      },
+      // 获取头部数据
+      getReport() {
+        let data = {}
+        data.lat_time = this.start_time
+        data.end_time = this.end_time
+        this.$api.reportReport(data).then(res => {
+          if (res.errno === 0) {
+            this.reportData = res.data
+          } else {
+            this.$toast(res.errmsg)
+          }
+        })
+      },
+      getDetail() {
+        this.$toast.loading({
+            message: '加载中...',
+            forbidClick: true,
+            duration: 0,
+        });
+        this.$api.reportDetail({
+          report_id: this.report_id
+        }).then(res => {
+          this.$toast.clear()
+          if (res.errno === 0) {
+            this.detailCont = res.data
+            // if (this.detailCont.entertain_expenses) {
+            //   this.ifZhaoDai = true
+            // }
+            if (this.detailCont.other_expenses) {
+              this.ifOther = true
+            }
+
+            if (res.data.pic) {
+              var pics = res.data.pic;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              this.thumbListPre = r
+              this.totalPage = r.length
+              r = r.map((item, index) => ({
+                url: item,
+                index: index
+              }));
+              this.fileList1 = JSON.parse(JSON.stringify(r));
+            }
+
+            if (res.data.file) {
+              var pics = res.data.file;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({
+                url: item
+              }));
+              this.fileList2 = JSON.parse(JSON.stringify(r));
+            }
+
+            if (res.data.other_pic) {
+              var pics = res.data.other_pic;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({
+                url: item
+              }));
+              this.fileList3 = JSON.parse(JSON.stringify(r));
+            }
+          }
+        }).catch(err=>{
+          this.$toast.clear()
+        })
+      },
+      clickPreview(file, detail) {
+        this.downUrl = file.url
+        this.startPosition = detail.index
+        this.pageIn = detail.index + 1
+        this.ifPreview = true
+      },
+      onChange(index) {
+        this.downUrl = this.fileList1[index].url
+        this.pageIn = index + 1
+      },
+      onClose(index, url) {
+        this.downUrl = '';
+        this.ifPreview = false
+      },
+      downLoadHandle() {
+        // console.log(this.downUrl)
+        if (typeof android != 'undefined') {
+          android.saveToPhone(this.downUrl); // 调用Android方法保存图片到手机相册
+          this.$toast({
+            message: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          var alink = document.createElement("a");
+          var event = new MouseEvent('click')
+          alink.href = this.downUrl;
+          alink.download = "pic"; //图片名
+          alink.dispatchEvent(event);
+        }
+      }
+    }
+  };
+</script>
+<style lang="less">
+  .dailyDetail {
+    min-height: calc(100% - 46px);
+    background: #f5f5f5;
+    padding-top: 46px;
+
+    .top {
+      z-index: 1;
+      background: #ffffff url(../../images/topBg.jpg) no-repeat;
+      width: 100%;
+      height: 75px;
+      background-size: 100% 75px;
+
+      >p {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        width: 100%;
+        background: #ffffff url(../../images/topBg.jpg) no-repeat top;
+        font-size: 14px;
+        height: 50px;
+        line-height: 50px;
+        color: #fff;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        padding-left: 16px;
+
+        img {
+          width: 10px;
+          height: 16px;
+          margin-right: 10px;
+        }
+
+        span {
+          line-height: 18px;
+        }
+      }
+
+      ul {
+        margin: 0 10px;
+        padding: 5px;
+        display: flex;
+        justify-content: left;
+        flex-wrap: wrap;
+        border-radius: 5px;
+        background: #f3feff url(../../images/inheader1.png) no-repeat center bottom;
+        background-size: 100% auto;
+
+        li {
+          width: 25%;
+          padding: 5px 0;
+          text-align: center;
+        }
+
+        span {
+          display: block;
+          line-height: 20px;
+
+          &:first-child {
+            font-size: 16px;
+          }
+        }
+      }
+    }
+
+    .marBottom {
+      margin-bottom: 10px;
+      background: #fff;
+
+      .selectUl {
+        display: flex;
+        justify-content: left;
+        flex-wrap: wrap;
+        color: #ffffff;
+        padding: 5px;
+
+        li {
+          margin: 5px 8px;
+          width: 36px;
+          height: 36px;
+          line-height: 36px;
+          font-size: 16px;
+          text-align: center;
+          background: #1c92ff;
+          border-radius: 50%;
+        }
+      }
+    }
+
+    .van-image-preview__cover {
+      width: 48px;
+      height: 48px;
+      text-align: center;
+      line-height: 54px;
+      bottom: 12% !important;
+      left: calc(50% - 24px) !important;
+      top: auto;
+      font-size: 24px;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      border-radius: 50%;
+    }
+
+    .van-cell {
+      img {
+        margin: 3px 2px 0 0;
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .uploadCont {
+      margin: 10px;
+
+      .van-uploader__preview-image {
+        width: 100px;
+        height: 70px;
+      }
+
+      .van-uploader__input-wrapper {
+        background: #F0F6FC;
+        width: 100px;
+        height: 70px;
+        text-align: center;
+        color: #9AA8B6;
+
+        img {
+          width: 15px;
+          height: 15px;
+          margin: 16px 0 5px 0;
+        }
+      }
+    }
+
+    .getAddress .van-cell__title {
+      flex: 0.35;
+    }
+
+    .label8 .van-cell__title {
+      width: 115px;
+    }
+
+    .label10 .van-cell__title {
+      width: 130px;
+    }
+    .label12 .van-cell__title {
+      width: 140px;
+    }
+  }
+</style>

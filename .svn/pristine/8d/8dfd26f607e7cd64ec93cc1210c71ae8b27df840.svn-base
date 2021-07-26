@@ -1,0 +1,620 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import index from '@/pages/index'
+import customer from '@/pages/customer/index'
+import customerGenjin from '@/pages/customer/genjin'
+import addCustomer from '@/pages/customer/addCustomer'
+import addGlCustomer from '@/pages/customer/addGlCustomer'
+import customerDetail from '@/pages/customer/customerDetail'
+import tagIndexList from '@/pages/tagIndexList'
+import tagList from '@/pages/tagList'
+import tagEdit from '@/pages/tagEdit'
+import tagAdd from '@/pages/tagAdd'
+import tagCustomerSel from '@/pages/tagCustomerSel'
+import genjinRecord from '@/pages/genjinRecord'
+import genjinDetail from '@/pages/genjinDetail'
+import contact from '@/pages/contact/index'
+import contactList from '@/pages/contact/contactList'
+import contactAdd from '@/pages/contact/contactAdd'
+import contactSearch from '@/pages/contact/contactSearch'
+import statisticalForm from '@/pages/statisticalForm'
+import work from '@/pages/work'
+import msg from '@/pages/msg/index'
+import msgDetail from '@/pages/msg/msgDetail'
+import ucenter from '@/pages/ucenter/index'
+import sign from '@/pages/ucenter/sign'
+import myCustomer from '@/pages/ucenter/customer'
+import perInfo from '@/pages/ucenter/info'
+import changePass from '@/pages/ucenter/changepass'
+import login from '@/pages/login'
+import forgetPass from '@/pages/forgetPass'
+import search from '@/pages/search'
+import daiban from '@/pages/daiban'
+import meeting from '@/pages/meeting/index'
+import addMeeting from '@/pages/meeting/addMeeting'
+import addSuccess from '@/pages/meeting/addSuccess'
+import signUp from '@/pages/meeting/signUp'
+import mettingRegLists from '@/pages/meeting/mettingRegLists'
+import mettingSignLists from '@/pages/meeting/mettingSignLists'
+import mapSearch from '@/pages/mapSearch'
+import ccbCustomer from '@/pages/ccbCustomer/index'
+import ccbCustomerDetail from '@/pages/ccbCustomer/ccbCustomerDetail'
+import ccbSearch from '@/pages/ccbSearch'
+import genjinSel from '@/pages/genjinSel'
+import contactCcbSel from '@/pages/contactCcbSel'
+import dupliCheck from '@/pages/dupliCheck'
+import nearBy from '@/pages/nearBy/index'
+import siteStatise from '@/pages/siteStatise/index'
+import siteStatiseSearch from '@/pages/siteStatise/siteStatiseSearch'
+import siteStatiseAdd from '@/pages/siteStatise/siteStatiseAdd' 
+import siteStatiseDetail from '@/pages/siteStatise/siteStatiseDetail'
+import dailyList from '@/pages/daily/index'
+import dailyAdd from '@/pages/daily/add'
+import dailyDetail from '@/pages/daily/detail'
+import weeklyList from '@/pages/weekly/index'
+import weeklyAdd from '@/pages/weekly/add'
+import weeklyDetail from '@/pages/weekly/detail'
+import trackList from '@/pages/track/index'
+import trackListPersonal from '@/pages/track/indexPersonal'
+import trackListAdmin from '@/pages/track/indexAdmin'
+import trackDetail from '@/pages/track/trackDetail'
+import reportSel from '@/pages/reportSel'
+import siteAdd from '@/pages/siteAdd'
+import addActivity from '@/pages/addActivity'
+import activityDetail from '@/pages/activityDetail'
+
+import testPage from '@/pages/test' // 测试页面
+
+import tagIndex from '@/pages/tag/index' // 之前是仿微信只有一级标签，现在改成多级，最多可添加5级
+import tagChild3 from '@/pages/tag/tagChild3'
+import tagChild4 from '@/pages/tag/tagChild4'
+import tagChildLast from '@/pages/tag/tagChildLast'
+import tagEditList from '@/pages/tag/tagEditList'
+import tagIndexEdit from '@/pages/tag/tagIndexEdit'
+import tagIndexAdd from '@/pages/tag/tagIndexAdd'
+import tagComList from '@/pages/tag/tagComList'
+import trajectory from '@/pages/trajectory'
+
+import kehuIndex from '@/pages/kehu'
+import kehuAreaIndex from '@/pages/kehu/area'
+
+// 区域管理员
+import regionIndex from '@/pages/region/index'
+
+// 车辆管理
+import carList from '@/pages/car/index'
+import carListAdmin from '@/pages/car/indexAdmin'
+import carAdd from '@/pages/car/add'
+
+// 出差费用
+import chaiList from '@/pages/chai/index'
+import chaiListAdmin from '@/pages/chai/indexAdmin'
+import chaiAdd from '@/pages/chai/add'
+import chaiDetail from '@/pages/chai/detail'
+
+
+Vue.use(Router)
+
+export default new Router({
+  routes: [
+    {
+      path: '/test',
+      name: 'testPage',
+      component: testPage
+    },
+    {
+      path: '/',
+      name: 'index',
+      component: index,
+      meta: {
+        keepAlive: false // 不需要被缓存
+      }
+    },
+    {
+      path: '/customer',
+      name: '客户管理',
+      component: customer,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/customerGenjin',
+      name: '客户跟进',
+      component: customerGenjin,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        station_id: '',
+        customer_id: '',
+        customerName: '',
+        cls: '',
+        addressSel: '',
+        lnglatSel: '',
+        site_id: '',
+      }
+    },
+    {
+      path: '/addCustomer',
+      name: '添加客户',
+      component: addCustomer,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        linker_id: '',
+        linker_name: '',
+        addressSel: '',
+        lnglatSel: '',
+        from: '',
+        cls: 1
+      }
+    },
+    {
+      path: '/addGlCustomer',
+      name: '新增关联客户',
+      component: addGlCustomer
+    },
+    {
+      path: '/customerDetail',
+      name: '客户详情',
+      component: customerDetail
+    },
+    {
+      path: '/tagIndexList',
+      name: '客户标签',
+      component: tagIndexList
+    },
+    {
+      path: '/tagList',
+      name: '企业标签客户列表',
+      component: tagList
+    },
+    {
+      path: '/tagEdit',
+      name: '编辑标签',
+      component: tagEdit
+    },
+    {
+      path: '/tagAdd',
+      name: '新建标签',
+      component: tagAdd
+    },
+    {
+      path: '/tagCustomerSel',
+      name: '客户选择',
+      component: tagCustomerSel
+    },
+    {
+      path: '/genjinRecord',
+      name: '跟进记录',
+      component: genjinRecord,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+      }
+    },
+    {
+      path: '/genjinDetail',
+      name: '跟进详情',
+      component: genjinDetail
+    },
+    {
+      path: '/contact',
+      name: '联系人',
+      component: contact
+    },
+    {
+      path: '/contactList',
+      name: '联系人列表',
+      component: contactList,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        type: ''
+      }
+    },
+    {
+      path: '/contactAdd',
+      name: '新增联系人',
+      component: contactAdd,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        addressSel: '',
+        lnglatSel: '',
+        from: ''
+      }   
+    },
+    {
+      path: '/contactSearch',
+      name: '联系人搜索',
+      component: contactSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        type: '',
+        keyword: '',
+      }
+    },
+    {
+      path: '/statisticalForm',
+      name: '统计报表',
+      component: statisticalForm
+    },
+    {
+      path: '/work',
+      name: '办公',
+      component: work
+    },
+    {
+      path: '/msg',
+      name: '消息',
+      component: msg
+    },
+    {
+      path: '/msgDetail',
+      name: '消息详情',
+      component: msgDetail
+    },
+    {
+      path: '/ucenter',
+      name: '我的',
+      component: ucenter
+    },
+    {
+      path: '/sign',
+      name: '我的签到',
+      component: sign
+    },
+    {
+      path: '/myCustomer',
+      name: '我的客户',
+      component: myCustomer
+    },
+    {
+      path: '/perInfo',
+      name: '我的资料',
+      component: perInfo
+    },
+    {
+      path: '/changePass',
+      name: '修改密码',
+      component: changePass
+    },
+    {
+      path: '/login',
+      name: '登录',
+      component: login
+    },
+    {
+      path: '/forgetPass',
+      name: '忘记密码',
+      component: forgetPass
+    },
+    {
+      path: '/search',
+      name: '搜索',
+      component: search,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/daiban',
+      name: '待办',
+      component: daiban
+    },
+    {
+      path: '/meeting',
+      name: '会议管理',
+      component: meeting,
+    },
+    {
+      path: '/addMeeting',
+      name: '添加会议',
+      component: addMeeting
+    },
+    {
+      path: '/addSuccess',
+      name: '添加成功',
+      component: addSuccess
+    },
+    {
+      path: '/signUp',
+      name: '报名成功',
+      component: signUp
+    },
+    {
+      path: '/mettingRegLists',
+      name: '报名列表',
+      component: mettingRegLists
+    },
+    {
+      path: '/mettingSignLists',
+      name: '签到列表',
+      component: mettingSignLists
+    },
+    {
+      path: '/mapSearch',
+      name: '地点微调',
+      component: mapSearch
+    },
+    {
+      path: '/ccbCustomer',
+      name: '建行客户',
+      component: ccbCustomer,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        from: '',
+        cls: 2
+      }
+    },
+    {
+      path: '/ccbCustomerDetail',
+      name: '建行客户详情',
+      component: ccbCustomerDetail
+    },
+    {
+      path: '/ccbSearch',
+      name: '建行客户搜索',
+      component: ccbSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/genjinSel',
+      name: '手动选择跟进客户',
+      component: genjinSel,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        customer_id: '',
+        customerName: '',
+        addressSel: '',
+        lnglatSel: '',
+        site_id: '',
+        cls: ''
+      }
+    },
+    {
+      path: '/contactCcbSel',
+      name: '建行客户选择',
+      component: contactCcbSel
+    },
+    {
+      path: '/dupliCheck',
+      name: '查重',
+      component: dupliCheck
+    },
+    {
+      path: '/nearBy',
+      name: '附近客户',
+      component: nearBy
+    },
+    {
+      path: '/siteStatiseSearch',
+      name: '站点统计搜索',
+      component: siteStatiseSearch,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        keyword: ''
+      }
+    },
+    {
+      path: '/siteStatise',
+      name: '站点统计',
+      component: siteStatise,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/siteStatiseAdd',
+      name: '站点统计增加',
+      component: siteStatiseAdd
+    },
+    {
+      path: '/siteStatiseDetail',
+      name: '站点统计详情',
+      component: siteStatiseDetail
+    },
+    {
+      path: '/dailyList',
+      name: '日报列表',
+      component: dailyList,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/dailyAdd',
+      name: '日报添加',
+      component: dailyAdd,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        addressSel: '',
+        lnglatSel: ''
+      }
+    },
+    {
+      path: '/dailyDetail',
+      name: '日报详情',
+      component: dailyDetail
+    },
+    {
+      path: '/reportSel',
+      name: '汇报对象',
+      component: reportSel
+    },
+    {
+      path: '/weeklyList',
+      name: '周报列表',
+      component: weeklyList,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/weeklyAdd',
+      name: '周报添加',
+      component: weeklyAdd,
+      meta: {
+        keepAlive: true,
+        isBack: false,
+        addressSel: '',
+        lnglatSel: ''
+      }
+    },
+    {
+      path: '/weeklyDetail',
+      name: '周报详情',
+      component: weeklyDetail
+    },
+    {
+      path: '/trackList',
+      name: '轨迹列表',
+      component: trackList
+    },
+    {
+      path: '/trackListPersonal',
+      name: '轨迹列表(普通)',
+      component: trackListPersonal,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/trackListAdmin',
+      name: '轨迹列表(管理)',
+      component: trackListAdmin,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },
+    {
+      path: '/trackDetail',
+      name: '轨迹详情',
+      component: trackDetail
+    },
+    {
+      path: '/siteAdd',
+      name: '站点统计添加-关联客户',
+      component: siteAdd
+    },{
+      path: '/addActivity',
+      name: '添加活动',
+      component: addActivity
+    },
+    {
+      path: '/activityDetail',
+      name: '活动详情',
+      component: activityDetail
+    },
+    {
+      path: '/tagIndex',
+      name: '标签主页（包含一级和二级标签）',
+      component: tagIndex
+    },
+    {
+      path: '/tagChild3',
+      name: '标签列表（三级标签）',
+      component: tagChild3
+    },
+    {
+      path: '/tagChild4',
+      name: '标签列表（四级标签）',
+      component: tagChild4
+    },
+    {
+      path: '/tagChildLast',
+      name: '标签列表（五级标签）',
+      component: tagChildLast
+    },
+    {
+      path: '/tagEditList',
+      name: '所有标签列表（编辑）',
+      component: tagEditList
+    },
+    {
+      path: '/tagIndexEdit',
+      name: '编辑标签',
+      component: tagIndexEdit
+    },
+    {
+      path: '/tagIndexAdd',
+      name: '新增/修改标签',
+      component: tagIndexAdd
+    },
+    {
+      path: '/tagComList',
+      name: '企业标签客户列表',
+      component: tagComList
+    },
+    {
+      path: '/trajectory',
+      name: '轨迹统计',
+      component: trajectory
+    },{
+      path: '/kehu',
+      name: '我的客户',
+      component: kehuIndex,
+      meta: {
+        keepAlive: true,
+        isBack: false
+      }
+    },{
+      path: '/kehuAreaIndex',
+      name: '区域客户',
+      component: kehuAreaIndex
+    },{
+      path: '/region',
+      name: '区域管理员',
+      component: regionIndex
+    },{
+      path: '/car',
+      name: '车辆管理列表',
+      component: carList
+    },{
+      path: '/carAdmin',
+      name: '车辆管理管理员列表',
+      component: carListAdmin
+    },{
+      path: '/carAdd',
+      name: '车辆管理增加',
+      component: carAdd
+    },
+    ,{
+      path: '/chaiList',
+      name: '出差费用列表',
+      component: chaiList
+    },{
+      path: '/chaiListAdmin',
+      name: '出差费用管理员列表',
+      component: chaiListAdmin
+    },{
+      path: '/chaiAdd',
+      name: '出差费用增加',
+      component: chaiAdd
+    },{
+      path: '/chaiDetail',
+      name: '出差费用详情',
+      component: chaiDetail
+    },
+
+    
+  ]
+})

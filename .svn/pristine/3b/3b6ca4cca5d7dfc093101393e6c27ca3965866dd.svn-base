@@ -1,0 +1,747 @@
+<template>
+  <div class="addCustomer">
+    <van-nav-bar :left-text="leftText" left-arrow @click-left="leftBack" />
+    <div class="marBottom">
+      <van-cell
+        title="客户标签类型"
+        @click="isType=true"
+        is-link
+        :value="typeName"
+        icon="http://sc.xfd365.com/crmImages/tag.png"
+      />
+    </div>
+
+    <div class="marBottom">
+      <van-field
+        placeholder="请输入客户姓名"
+        label="客户名称"
+        left-icon="http://sc.xfd365.com/crmImages/name.png"
+        input-align="right"
+        v-model="name"
+      />
+      <van-field
+        placeholder="请输入手机号码"
+        type="tel"
+        label="联系电话"
+        left-icon="http://sc.xfd365.com/crmImages/phone.png"
+        input-align="right"
+        v-model="mobile"
+      />
+      <!-- <van-field
+                placeholder="请选择客户地址"
+                label="客户地址"
+                left-icon="http://sc.xfd365.com/crmImages/address.png"
+                input-align="right"
+                v-model="address"
+                @click="prov = true"
+      />-->
+      <van-field
+        placeholder="请输入服务站点名称"
+        label="服务站点名称"
+        left-icon="http://sc.xfd365.com/crmImages/customerName.png"
+        input-align="right"
+        v-model="station_name"
+      />
+      <div class="addressCont">
+        <van-field
+          placeholder="请选择地址/获取位置"
+          label="服务点地址"
+          left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+          input-align="right"
+          v-model="station_address"
+          @click="prov = true"
+          readonly
+          class="addressIn"
+        />
+        <p class="getLocat" @click="getLocation"><span>获取当前位置</span></p>
+      </div>
+      
+      <van-field
+        placeholder="请输入站点详细地址"
+        label="站点详细地址"
+        left-icon="http://sc.xfd365.com/crmImages/address.png"
+        input-align="right"
+        v-model="addressDetail"
+      />
+
+      <baidu-map class="map" @ready="handler"></baidu-map>
+    </div>
+
+    <div class="provin" v-show="prov">
+      <van-area :area-list="areaList" @cancel="hideProv" @confirm="confirmProv" />
+      <van-overlay :show="prov" @click="prov = false" />
+    </div>
+
+    <div class="marBottom">
+      <van-field
+        :value="userName"
+        label="归属人员"
+        left-icon="http://sc.xfd365.com/crmImages/guishu.png"
+        input-align="right"
+        readonly
+      />
+    </div>
+
+    <div class="marBottom">
+      <van-cell
+        title="新增关联客户"
+        @click="addGlCustomer"
+        is-link
+        :value="linker_name"
+        icon="http://sc.xfd365.com/crmImages/guanlian.png"
+      />
+    </div>
+    <div class="marBottom">
+      <van-cell title="上传客户相关图片" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+      <van-uploader v-model="fileList" multiple :max-count="8" :after-read="afterRead" :before-delete="beforeDelete" />
+    </div>
+    <div class="marBottom">
+      <van-cell title="备注信息" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+      <van-field v-model="message" rows="2" autosize type="textarea" placeholder="请输入跟进内容" />
+    </div>
+
+    <van-popup v-model="isType">
+      <div class="content">
+        <p>*可以选择多种标签</p>
+        <ul>
+          <li
+            v-for="(item,index) in type"
+            :key="index"
+            :class="item.ischecked?'active':''"
+            @click="item.ischecked = !item.ischecked"
+          >{{item.title}}</li>
+        </ul>
+        <button @click="closeType">确定</button>
+      </div>
+    </van-popup>
+    <img src="http://sc.xfd365.com/crmImages/tags.png" alt v-show="isType" />
+
+    <button class="save" v-show="hideShow" @click="save">保存</button>
+  </div>
+</template>
+<script>
+import AreaList from "../../styles/area";
+import BaiduMap from 'vue-baidu-map/components/map/Map.vue'
+export default {
+  name: "addCustomer",
+  data() {
+    return {
+      leftText: "新增客户",
+      message: "",
+      name: "",
+      mobile: "",
+      address: "",
+      station_name: "",
+      station_address: "",
+      userName: "",
+      areaList: AreaList,
+      prov: false,
+      addressDetail: "",
+      fileList: [],
+      pics: "",
+      isType: false,
+      typeName: "请选择客户标签类型",
+      label: "",
+      station_id: "",
+      linker_id: "",
+      linker_name: "",
+      type: [
+        {
+          title: "益农社站长",
+          ischecked: false
+        },
+        {
+          title: "标准站站长",
+          ischecked: false
+        },
+        {
+          title: "第三方",
+          ischecked: false
+        },
+        {
+          title: "县级运营商",
+          ischecked: false
+        },
+        {
+          title: "银行业务人员",
+          ischecked: false
+        }
+      ],
+      docmHeight: 0,  //默认屏幕高度       
+      showHeight:  0,   //实时屏幕高度        
+      hideShow: true,  //显示或者隐藏footer,      
+      isResize: false, //默认屏幕高度是否已获取   
+      from_id: '',
+      ifDetail: '',
+      locatAddress: '',
+      locatDetail: ''
+    };
+  },
+  mounted() {
+    window.onAndroid = this.onAndroid;
+    window.onGetLocation = this.onGetLocation;
+    window.geoc = null;
+    window.vue = this;
+
+    window.onresize = ()=> {  // window.onresize监听页面高度的变化 
+      return(()=>{
+        if(!this.isResize){
+           // 默认屏幕高度  
+          this.docmHeight = document.documentElement.clientHeight
+          this.isResize = true
+        }
+         // 实时屏幕高度 
+        this.showHeight = document.body.clientHeight
+      })()
+    },
+    this.userName = localStorage.getItem("userName");
+    var id = this.$route.query.id;
+    this.from_id = this.$route.query.from_id;
+    this.ifDetail = this.$route.query.ifDetail;
+    if (this.$route.query.id) {
+      // 编辑
+      this.leftText = "编辑客户";
+      this.$api.stationDetail({ station_id: id }).then(res => {
+        //   console.log(res)
+        if (res.errno === 0) {
+          if (res.data) {
+            this.station_id = res.data.station_id;
+            this.label = res.data.label;
+            if (this.label) {
+              let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+              var typeName = "";
+              typeNameArray.forEach(ele => {
+                typeName += ele + "、";
+              });
+            }
+            this.typeName = typeName;
+            this.name = res.data.name;
+            this.mobile = res.data.mobile;
+            this.station_name = res.data.station_name;
+            if (res.data.station_address) {
+              this.station_address = res.data.station_address;
+            }
+            this.addressDetail = res.data.address;
+            this.message = res.data.note;
+            this.pics = res.data.thumb;
+            if (this.pics) {
+              var pics = this.pics;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({ url: item }));
+              this.fileList = JSON.parse(JSON.stringify(r));
+            } else {
+              this.pics = ''
+              this.fileList = [];
+            }
+
+            
+          }
+        }
+      });
+    } else {
+        this.leftText = "新增客户";
+      // 新增
+      this.linker_id = this.$route.query.linker_id;
+      this.linker_name = this.$route.query.linker_name;
+    }
+  },
+  methods: {
+    leftBack(){
+      if(this.from_id == 1){
+        this.$router.push({
+            path: "/customer"
+        });
+      }else{
+        this.$router.go(-1)
+      }
+    },
+    getLocation() {
+      this.station_address = this.locaAddress;
+      this.addressDetail = this.locaDetail;
+    },
+    handler({ BMap, map }) {
+      window.map = map; //注册为全局
+      var that = this; // map方法中的this指向不对。所有申明一个。。小细节的东西
+      // 刚进入页面中的定位，需要向用户授权
+      var point = new BMap.Point(113.39852, 34.897445);
+
+      var geolocation = new BMap.Geolocation();
+      var geoc = new BMap.Geocoder();
+      window.geoc = geoc;
+
+      var isAndroid = localStorage.getItem("isAndroid");
+      if (isAndroid == "123") {
+        android.requestLocation();
+      } else {
+        geolocation.getCurrentPosition(
+          function(r) {
+            if (this.getStatus() == BMAP_STATUS_SUCCESS) {
+              var pt = r.point;
+              geoc.getLocation(pt, function(rs) {
+                var addComp = rs.addressComponents;
+                that.locaAddress = addComp.province+ "/" + addComp.city+ "/" + addComp.district
+                that.locaDetail = addComp.street + addComp.streetNumber;
+              });
+            } else {
+              alert("failed" + this.getStatus());
+            }
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    },
+    onAndroid() {
+      localStorage.setItem("isAndroid", "123");
+    },
+    onGetLocation(lat, lon) {
+      var that = this;
+      var geoc = window.geoc;
+      var center = Object.assign({}, this.center);
+      center = new BMap.Point(center.lng, center.lat);
+      geoc.getLocation(center, function(rs) {
+        var addComp = rs.addressComponents;
+          that.locaAddress = addComp.province+ "/" + addComp.city+ "/" + addComp.district
+          that.locaDetail = addComp.street + addComp.streetNumber;
+      });
+    },
+    addGlCustomer(){
+      let ifDetail = '';
+      if(this.from_id == 0){
+        ifDetail = 1
+      }
+      this.$router.push({
+            path: "/addGlCustomer",
+            query:{
+                from_id: this.from_id,
+                ifDetail: ifDetail
+            }
+        })
+    },
+    save() {
+      // console.log(this.linker_id + "---22222222222222")
+      if (this.name.trim().length == 0) {
+        this.$toast("请填写客户名称！");
+        return;
+      }
+      let reg = /^1[0-9]{10}$/;
+      if(this.mobile.trim().length == 0){
+        this.$toast("请输入联系方式！");
+        return;
+      }else if (this.mobile.length <= 10 || !reg.test(this.mobile)) {
+        this.$toast("请输入正确的联系方式！");
+        return;
+      }
+      // if (this.station_name.trim().length == 0) {
+      //   this.$toast("请输入服务站点名称！");
+      //   return;
+      // }
+      // if (this.addressDetail.trim().length == 0) {
+      //   this.$toast("请输入站点详细地址！");
+      //   return;
+      // }
+      this.$api
+        .stationSave({
+          station_id: this.station_id,
+          name: this.name,
+          mobile: this.mobile,
+          address: this.addressDetail,
+          station_name: this.station_name,
+          station_address: this.station_address,
+          note: this.message,
+          thumb: this.pics,
+          label: this.label,
+          linker_id: this.linker_id,
+          stype: 0
+        })
+        .then(res => {
+          this.$toast(res.errmsg);
+          if (res.errno === 0) {
+            // this.$router.go(-1)
+            if(this.from_id == 1){
+              this.$router.push({
+                  path: "/customer"
+              });
+            }else if(this.from_id == 0 && this.ifDetail == 1 && this.linker_id){
+              this.$router.go(-3)
+            } else{
+              this.$router.go(-1)
+            }
+          }
+        });
+    },
+
+    hideProv: function() {
+      this.prov = false;
+    },
+    confirmProv: function(val) {
+      this.prov = false;
+      this.addressDetail = '';
+      let value = JSON.stringify(val);
+      value = JSON.parse(value);
+       this.station_address = ''
+      value.forEach(element => {
+        if (element.name == null) {
+          return;
+        } else {
+          this.station_address += element.name + "/";
+        }
+      });
+      this.station_address = this.station_address.substring(0,this.station_address.lastIndexOf("/"));
+    },
+
+    afterRead(file) {
+      var formdata = new FormData();
+      //可以通过append()方法来追加数据
+      let token = localStorage.getItem("token");
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+          if (res.data.errno == 0) {
+            this.$toast("上传成功");
+            this.pics += res.data.data.url + "#";
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    beforeDelete(file){
+      this.fileList = this.fileList.filter(item => item != file)
+      var formdata = new FormData();
+      let token = localStorage.getItem("token");
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+
+      })
+      // 删除图片接口
+      // instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+      //   console.log(res)
+      // })
+
+
+    },
+    closeType() {
+      var type = this.type;
+      var arr = type.filter(ele => {
+        return ele.ischecked;
+      });
+      arr = JSON.parse(JSON.stringify(arr));
+      var typeName = "";
+      var label = "";
+      arr.forEach(ele => {
+        typeName += ele.title + "、";
+        label += ele.title + "#";
+      });
+      this.typeName = typeName;
+      this.label = label;
+      this.isType = false;
+    }
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hideShow = false
+      }else{
+        this.hideShow = true
+      }
+    }
+  },
+  beforeRouteEnter(to, from, next) {
+    document.documentElement.scrollTop = 0
+     let linker_id = to.query.linker_id
+     let linker_name = to.query.linker_name
+     let from_id = to.query.from_id
+     let ifDetail = to.query.ifDetail
+      if(linker_id > 0){
+          to.meta.linker_id = linker_id
+          to.meta.linker_name = linker_name
+          
+      }
+
+    to.meta.from_id = from_id
+    to.meta.ifDetail = ifDetail
+    if (from.path == "/addGlCustomer") {
+      to.meta.isBack = true;
+    } else {
+      to.meta.isBack = false;
+    }
+    
+    next();
+  },
+  activated() {
+    window.onresize = ()=> {  // window.onresize监听页面高度的变化 
+      return(()=>{
+        if(!this.isResize){
+           // 默认屏幕高度  
+          this.docmHeight = document.documentElement.clientHeight
+          this.isResize = true
+        }
+         // 实时屏幕高度 
+        this.showHeight = document.body.clientHeight
+      })()
+    },
+    this.linker_id = this.$route.meta.linker_id
+    this.linker_name = this.$route.meta.linker_name
+    this.from_id = this.$route.meta.from_id
+    this.ifDetail = this.$route.meta.ifDetail
+    if (!this.$route.meta.isBack) {
+      this.station_id = "";
+      this.typeName = "请选择客户标签类型";
+      this.label = "";
+      this.name = "";
+      this.mobile = "";
+      this.station_name = "";
+      this.station_address = "";
+      this.address = "";
+      this.addressDetail = "";
+      this.linker_name = "";
+      this.linker_id = "";
+      this.pics = "";
+      this.fileList = [];
+      this.message = "";
+      this.type = [
+        {
+          title: "益农社站长",
+          ischecked: false
+        },
+        {
+          title: "标准站站长",
+          ischecked: false
+        },
+        {
+          title: "第三方",
+          ischecked: false
+        },
+        {
+          title: "县级运营商",
+          ischecked: false
+        },
+        {
+          title: "银行业务人员",
+          ischecked: false
+        }
+      ],
+      this.userName = localStorage.getItem("userName");
+      var id = this.$route.query.id;
+      if (this.$route.query.id) {
+        // 编辑
+        this.leftText = "编辑客户";
+        this.$api.stationDetail({ station_id: id }).then(res => {
+          //   console.log(res)
+          if (res.errno === 0) {
+            if (res.data) {
+              this.station_id = res.data.station_id;
+              this.label = res.data.label;
+              if (this.label) {
+                let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+                var typeName = "";
+                typeNameArray.forEach(ele => {
+                  typeName += ele + "、";
+                });
+              }
+              this.typeName = typeName;
+              this.name = res.data.name;
+              this.mobile = res.data.mobile;
+              this.station_name = res.data.station_name;
+              if (res.data.station_address) {
+                this.station_address = res.data.station_address;
+              }
+              this.addressDetail = res.data.address;
+              this.message = res.data.note;
+              this.pics = res.data.thumb;
+              if (this.pics) {
+                var pics = this.pics;
+                pics = pics.split("#");
+                var r = pics.filter(function(s) {
+                  return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+                });
+                r = r.map(item => ({ url: item }));
+                this.fileList = JSON.parse(JSON.stringify(r));
+              } else {
+                this.pics = [];
+                this.fileList = [];
+              }
+
+              
+            }
+          }
+        });
+      }else{
+          this.leftText = "新增客户";
+      }
+ 
+    }
+    this.$route.meta.isBack = false;
+    this.$route.meta.from_id = 1;
+  },
+  created() {
+    document.documentElement.scrollTop = 0
+  }
+};
+</script>
+<style lang="less">
+.addCustomer {
+  min-height: 100%;
+  background: #f5f5f5;
+  padding-bottom: 50px;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+
+  .van-field__control{
+    text-overflow: ellipsis;
+  }
+  .addressCont {
+    position: relative;
+    .van-field__label{
+      width: 72px;
+    }
+    .addressIn {
+      padding-right: 100px;
+    }
+    .getLocat {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      span{
+        padding: 6px 5px;
+        border-radius: 5px;
+        background: #1C92FF;
+        color: #ffffff;
+        display: flex;
+        margin: 8px 10px;
+      }
+    }
+  }
+
+  .van-picker {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 999;
+  }
+
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+
+  .van-uploader {
+    margin: 10px;
+  }
+
+  .van-popup {
+    width: 90%;
+    border-radius: 10px;
+    .content {
+      p {
+        text-align: right;
+        color: #aaaaaa;
+        margin-top: 15px;
+        margin-right: 15px;
+      }
+      ul {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0 15px;
+        li {
+          height: 30px;
+          padding: 0 10px;
+          font-size: 16px;
+          text-align: center;
+          line-height: 30px;
+          border-radius: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+          &:nth-of-type(1){
+            border:1px solid rgba(28, 146, 255, 1);
+            background:rgba(28,146,255,0.1);
+            &.active{
+              color: #1C92FF;
+            }
+          }
+          &:nth-of-type(2){
+            background:rgba(255,151,28,0.1);
+            border:1px solid rgba(255, 151, 28, 1);
+             &.active{
+              color: #FF971C;
+            }
+          }
+          &:nth-of-type(3){
+            background:rgba(28,252,255,0.1);
+            border:1px solid rgba(50, 209, 211, 1);
+             &.active{
+              color: #32D1D3;
+            }
+          }
+          &:nth-of-type(4){
+            background:rgba(229,206,13,0.1);
+            border:1px solid rgba(225, 193, 34, 1);
+             &.active{
+              color: #DFBD00;
+            }  
+          }
+          &:nth-of-type(5){
+            background:rgba(28,255,172,0.1);
+            border:1px solid rgba(25, 226, 152, 1);
+             &.active{
+              color: #19E298;
+            }           
+          }
+        }
+      }
+      button {
+        width: 100%;
+        height: 49px;
+        border: none;
+        border-top: 1px solid #eeeeee;
+        background: #fff;
+        margin-top: 25px;
+        color: #1c92ff;
+        font-size: 16px;
+      }
+    }
+  }
+
+  > img {
+    width: 70px;
+    height: 70px;
+    position: fixed;
+    top: 50%;
+    margin-top: -140px;
+    left: 5%;
+    z-index: 9999;
+  }
+
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>

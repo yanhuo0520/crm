@@ -1,0 +1,189 @@
+<template>
+  <div class="trackListAdmin">
+    <van-nav-bar
+      left-text="日程轨迹"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+    >
+    </van-nav-bar>
+    <!-- 管理员身份 -->
+    <div class="searchCont">
+      <input type="text" placeholder="请输入搜索姓名" v-model="valueInput" @input="changeInput()" />
+      <img src="../../images/searchContact.png" alt />
+    </div>
+    <ul class="contUl" v-if="userListArray != ''">
+      <li v-for="(item, index) in userListArray" :key="index" @click="trackDetail(item.user_id, item.user_name)">
+        <img src="../../images/avatar1.png" alt />
+        {{item.user_name}}的轨迹
+      </li>
+    </ul>
+    <div v-else-if="userListArray == '' && valueInput" class="zanwu">
+      <span>暂无<span class="tip">"{{valueInput}}"</span>的轨迹</span>
+    </div>
+    <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "trackListAdmin",
+  data() {
+    return {
+      role: "",
+      valueInput: '',
+      userListArray: [],
+      date: ""
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+    this.role = localStorage.getItem("role");
+    this.role = 2;
+    var d = new Date();
+    var datetime = d.getFullYear() + "-" + 
+      ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" + 
+      ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+    this.date = datetime;
+
+    this.getUserList();
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    },
+    changeInput() {
+      this.getUserList()
+    },
+    trackDetail(user_id, user_name) {
+      this.$router.push({
+        path: "/trackDetail",
+        query: {
+          lat_time: this.date,
+          end_time: this.date,
+          user_id: user_id,
+          user_name: user_name
+        }
+      });
+    },
+    // 员工列表
+    getUserList() {
+      this.$api.userList({keyword: this.valueInput}).then(res => {
+        if (res.errno === 0) {
+          this.userListArray = res.data;
+        }
+      });
+    }
+  },
+  beforeRouteEnter(to, from, next){
+    if(from.path == "/trackDetail"){
+      to.meta.isBack = true;
+    }else{
+      to.meta.isBack = false;
+    }
+    next()
+  },
+  activated(){
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    if(!this.$route.meta.isBack){ // 不缓存
+      document.documentElement.scrollTop = 0;
+      var d = new Date();
+      var datetime = d.getFullYear() + "-" + 
+        ((d.getMonth()<9)? ('0'+(d.getMonth() + 1)) : (d.getMonth() + 1)) + "-" + 
+        ((d.getDate()<10)? ('0'+ d.getDate()): d.getDate());
+      this.date = datetime;
+      this.valueInput = ''
+
+      this.getUserList();
+    }
+    this.$route.meta.isBack = false;
+
+  }
+};
+</script>
+<style lang="less">
+.trackListAdmin {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+    .van-nav-bar__right img {
+      width: 18px;
+    }
+  }
+  .searchCont {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #AAAAAA;
+    }
+    ::-webkit-input-placeholder {
+      color: #AAAAAA;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 16px;
+      padding: 10px 15px;
+    }
+  }
+  .contUl {
+    font-size: 14px;
+    color: #434343;
+    background: #ffffff;
+    li {
+      padding: 12px 16px;
+
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #eeeeee;
+      background: url("../../images/jiantou.png") no-repeat calc(100% - 16px);
+      background-size: auto 14px;
+    }
+    img {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+    .tip{
+      color: red;
+    }
+  }
+}
+</style>

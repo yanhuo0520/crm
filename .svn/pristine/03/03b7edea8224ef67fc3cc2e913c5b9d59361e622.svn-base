@@ -1,0 +1,490 @@
+<template>
+  <div class="kehuArea">
+    <van-nav-bar left-text="区域客户" left-arrow fixed @click-left="leftBack" />
+    <div class="topRight">
+      <img class="transferBtn" v-if="!ifbatchTrans" src="../../images/transfer_t.png" alt
+        @click="ifbatchTrans = true" />
+      <p class="transferSure" v-if="ifbatchTrans && selectNum > 0" src="../../images/transfer_t.png"
+        @click="selectShow = true">
+        确认({{ selectNum }})
+      </p>
+      <p class="transferSure" v-if="ifbatchTrans && selectNum == 0" @click="cancelSel()"
+        src="../../images/transfer_t.png">
+        取消
+      </p>
+    </div>
+    <div class="searchDivPer" @click="areaselectShow = true">
+      <input type="text" placeholder="选择区域人员" v-model="areaName" readonly />
+      <div class="arrow"></div>
+    </div>
+    <div v-if="lists != ''">
+      <div class="listCont" v-for="(item2, index2) in lists" :key="index2">
+        <div class="top" v-if="!ifbatchTrans" @click="toDetail(item2.id, item2.type, item2.site_id)">
+          <div style="display: flex; align-items: center">
+            <img src="../../images/avatar1.png" />
+            <p class="name">{{ item2.name }}</p>
+          </div>
+
+          <div>
+            <a :href="'tel:' + item2.mobile" class="phone" @click.stop>
+              <img src="../../images/tel.png" alt />
+            </a>
+            <img class="transfer" @click.stop="onlySelect(item2.name, item2.id)" src="../../images/change.png" alt />
+          </div>
+        </div>
+
+        <van-checkbox v-if="ifbatchTrans" :name="item2.id" v-model="item2.tag" @click="checkSel(item2.id, item2.name)">
+          <div style="display: flex; align-items: center">
+            <img src="../../images/avatar1.png" />
+            <p class="name">{{ item2.name }}</p>
+          </div>
+        </van-checkbox>
+      </div>
+    </div>
+
+    <div v-else-if="lists == '' && areaName && !loading" class="zanwu">
+      <span>暂无<span class="tip">"{{ areaName }}"</span>的客户</span>
+    </div>
+    <!-- <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div> -->
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+
+
+    <!-- 选择区域人员 -->
+    <van-action-sheet v-model="areaselectShow" title="选择区域人员">
+      <ul class="actionCont">
+        <li v-for="(item1, index1) in userData" :key="index1" @click="selectTip(item1.user_id, item1.user_name)">
+          {{item1.user_name}}
+          <img v-if="item1.user_id == areaId && areaId != 0" class="selectImg" src="../../images/select.png" alt />
+        </li>
+      </ul>
+    </van-action-sheet>
+
+    <!-- 选择移交人员 -->
+    <van-action-sheet v-model="selectShow" title="选择移交人">
+      <ul class="actionCont">
+        <li v-for="(item, index) in userListArray" :key="index" @click="transferPop(item.user_id, item.user_name)">
+          {{item.user_name}}
+          <img v-if="item.user_id == user_id && user_id != 0" class="selectImg" src="../../images/select.png" alt />
+        </li>
+      </ul>
+    </van-action-sheet>
+  </div>
+</template>
+<script>
+  export default {
+    name: "kehuArea",
+    data() {
+      return {
+        loading: 1,
+        page: 1,
+        pageSize: 20,
+        totalPage: 1,
+        lists: [],
+
+        areaselectShow: false,
+        userData: [],
+        areaId: localStorage.getItem("userId"), // 当前用户
+        areaName: '',
+
+        ifbatchTrans: false, // 是否批量移交
+        userId: localStorage.getItem("userId"),
+        selectShow: false,
+        selectIdArray: [],
+        selectNameArray: [], // 选择客户名称数组
+        selectNum: 0,
+        tipName: '',
+
+        user_id: localStorage.getItem("userId"), // 当前用户
+        userListArray: '', // 选择移交人员列表
+
+
+
+      };
+    },
+    mounted() {
+      window.leftBack = this.leftBack; // Android原生返回按钮执行leftBack()方法\
+      window.addEventListener("scroll", this.scrollBottomAreaList);
+      // 管理人
+      this.getUserRegin()
+      // 移交人
+      this.getUserList()
+      this.getList()
+    },
+    methods: {
+      leftBack() {
+        if(this.ifbatchTrans){
+          this.ifbatchTrans = false
+          this.selectIdArray = []
+          this.selectNameArray = []
+          this.selectNum = 0
+          this.tipName = ''
+          this.page = 1;
+          this.getList()
+        }else{
+          this.$router.go(-1);
+        }
+      },
+      getUserRegin(){
+        this.$api.userLIstRegion({
+            keyword: ''
+          }).then(res => {
+            if (res.errno === 0) {
+              this.userData = res.data;
+            }
+          });
+      },
+      scrollBottomAreaList(e) {
+        let that = this;
+        var scrollTop =
+          e.target.documentElement.scrollTop || e.target.body.scrollTop;
+
+        let clientHeight = document.documentElement.clientHeight; /*当前可视高度*/
+        let scrollHeight = Math.max(
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight
+        ); /*文档完整的高度*/
+        if (
+          scrollHeight - clientHeight - scrollTop <= 0 &&
+          that.page < that.totalPage
+        ) {
+          that.page += 1;
+          that.loading = 1;
+          that.getList();
+        }
+      },
+      getList() {
+      var that = this;
+      let data = {}
+        data.user_id = that.areaId
+        data.page = that.page
+        data.size = that.pageSize
+      this.$api.listAllRegion(data).then(res => {
+          that.totalPage = res.total_page;
+          if (res.errno === 0) {
+            if (that.page == 1) {
+              that.loading = 0;
+              that.lists = res.data;
+            } else if (res.data.length > 0) {
+              that.lists.push(...res.data);
+              if (res.data.length < that.pageSize ||(res.data.length == that.pageSize && that.page == that.totalPage)) {
+                that.loading = 0;
+              }
+            } else if (that.page == that.totalPage) {
+              that.loading = 0;
+            }
+
+          } else {
+            that.loading = 0;
+            that.lists = []
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+      toDetail(id, type, site_id) {
+        let path;
+        if (type == 2) { // 建行客户
+          path = "/ccbCustomerDetail"
+        } else { // 新增客户
+          path = "/customerDetail"
+        }
+        console.log(path)
+        this.$router.push({
+          path: path,
+          query: {
+            id: id,
+            site_id: site_id
+          }
+        });
+      },
+      // 员工列表
+      getUserList() {
+        this.$api.userList({
+          keyword: ''
+        }).then(res => {
+          if (res.errno === 0) {
+            this.userListArray = res.data;
+          }
+        });
+      },
+      // 选择区域人员
+      selectTip(user_id, user_name){
+        this.areaselectShow = false;
+        this.areaId = user_id
+        this.areaName = user_name
+
+        this.selectIdArray = []
+          this.selectNameArray = []
+          this.selectNum = 0
+          this.tipName = ''
+          
+        this.page = 1
+        this.loading = 1
+        this.lists = []
+        this.getList();
+      },
+      // 单个移交
+      onlySelect(name, id) {
+        this.selectShow = true;
+        this.selectIdArray = []
+        this.selectNameArray = []
+        this.tipName = ''
+
+        this.selectIdArray.push(id);
+        this.selectNameArray.push(name);
+
+      },
+      // 批量选择移交人
+      checkSel(id, name) {
+        let index = this.selectIdArray.indexOf(id);
+        let nameIndex = this.selectNameArray.indexOf(name);
+        if (index == -1) {
+          this.selectIdArray.push(id)
+        } else {
+          this.selectIdArray.splice(index, 1);
+        }
+
+        if (nameIndex == -1) {
+          this.selectNameArray.push(name)
+        } else {
+          this.selectNameArray.splice(nameIndex, 1);
+        }
+
+        this.selectNum = this.selectIdArray.length;
+      },
+      // 确定移交
+      sureTransfer() {
+        if (this.selectIdArray.length > 0) {
+          this.transferShow = true
+        } else {
+          this.$toast("请先选择移交人")
+        }
+
+      },
+      // 移交
+      transferPop(user_id, user_name) {
+        let selectIdString = '';
+        this.selectIdArray.forEach(ele => { // 转换成字符串传给后台
+          selectIdString += ele + ','
+        })
+        if (selectIdString.lastIndexOf(',') > -1) { // 去掉最后一个逗号
+          selectIdString = selectIdString.substr(0, selectIdString.length - 1)
+        }
+
+        let selectNameString = '';
+        if (this.selectNameArray.length > 3) { // 只取前三个人的名字传给后台
+          for (let i = 0; i < 3; i++) {
+            selectNameString += this.selectNameArray[i] + ','
+            this.tipName = selectNameString.substr(0, selectNameString.length - 1) + '…'
+          }
+        } else {
+          this.selectNameArray.forEach(ele => { // 转换成字符串传给后台
+            selectNameString += ele + ','
+            this.tipName = selectNameString.substr(0, selectNameString.length - 1)
+          })
+        }
+        if (selectNameString.lastIndexOf(',') > -1) { // 去掉最后一个逗号
+          selectNameString = selectNameString.substr(0, selectNameString.length - 1)
+        }
+
+        if (localStorage.getItem("userId") == user_id || user_id == this.select_show_id) {
+          this.$toast("已是我的客户！")
+        } else {
+          this.$dialog.confirm({
+            title: '标题',
+            message: '确定把客户-【' + this.tipName + '】移交给【' + user_name + '】'
+          }).then(() => {
+            this.$api.transfer({
+              station_id: selectIdString,
+              name: selectNameString,
+              user_id: user_id
+            }).then(res => {
+              this.selectShow = false
+              if (res.errno === 0) {
+                this.$toast("移交成功");
+                this.ifbatchTrans = false
+                this.page = 1;
+                this.lists = []
+                this.getList();
+                this.selectIdArray = []
+                this.selectNameArray = []
+                this.selectNum = 0
+                this.tipName = ''
+              } else {
+                this.$toast(res.data.msg)
+              }
+            });
+          }).catch(() => {
+            // on cancel
+          })
+        }
+
+      },
+    },
+    destroyed() {
+      console.log("离开")
+      window.removeEventListener('scroll', this.scrollBottomAreaList); //监听页面滚动事件
+    }
+  };
+</script>
+<style lang="less">
+  .kehuArea {
+    min-height: calc(100% - 100px);
+    background: #f5f5f5;
+    padding-top: 100px;
+
+    .van-nav-bar {
+      z-index: 2;
+      background: url(../../images/msgBg.jpg) no-repeat;
+      height: 50px;
+      line-height: 50px;
+      background-size: 100% 50px;
+
+      .van-nav-bar__text {
+        color: #fff;
+      }
+
+      .van-icon {
+        color: #fff;
+      }
+    }
+
+    .topRight {
+      position: fixed;
+      right: 5px;
+      top: 0;
+      z-index: 999;
+
+      .transferBtn {
+        width: 28px;
+        padding: 10px;
+      }
+
+      .transferSure {
+        position: absolute;
+        color: #fff;
+        font-size: 14px;
+        right: 15px;
+        top: 0;
+        width: 80px;
+        text-align: right;
+        padding: 15px 0;
+      }
+    }
+
+    .userCont {
+      padding: 10px 5px 5px 5px;
+
+      .keyword {
+        background: #ffffff;
+        padding: 5px 15px;
+        border-radius: 30px;
+        margin: 5px;
+        display: inline-flex;
+
+        &.active {
+          background: #1989fa;
+          color: #ffffff;
+        }
+      }
+    }
+
+    .searchDivPer{
+      top: 50px;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      background: #f5f5f5;
+        position: fixed;
+        z-index: 10;
+        input{
+          width: 110px;
+          padding: 0 15px;
+          height: 32px;
+          line-height: 32px;
+          border: none;
+          border-radius: 35px;
+          background: #ffffff;
+        }
+        input:-ms-input-placeholder {
+          color: #444444;
+        }
+        ::-webkit-input-placeholder {
+          color: #444444;
+        }
+        .arrow{
+          position: absolute;
+          left: 120px;
+          top: 23px;
+          width: 0;
+          height: 0;
+          border: 5px solid;
+          border-color:#bbbbbb transparent  transparent transparent;
+        }
+      }
+
+      .actionCont{
+    padding: 0 15px;
+    line-height: 40px;
+    font-size: 14px;
+    .selectImg{
+      width: 20px;
+      float: right;
+      margin-top: 8px;
+    }
+  }
+
+    .listCont {
+      padding: 8px 10px 8px 10px;
+      background: #fff;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      img {
+        width: 26px;
+        height: 26px;
+        padding: 0 5px;
+      }
+
+      .van-checkbox__icon .van-icon {
+        font-size: 0.68em;
+        margin-top: 0.1em;
+        margin-left: 3px;
+      }
+
+      .van-checkbox__label {
+        line-height: 24px;
+      }
+    }
+
+    .zanwu {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding-top: 10%;
+
+      img {
+        width: 80%;
+      }
+
+      .tip {
+        color: red;
+      }
+    }
+
+    .van-loading {
+      padding: 10px 0;
+      text-align: center;
+    }
+  }
+</style>

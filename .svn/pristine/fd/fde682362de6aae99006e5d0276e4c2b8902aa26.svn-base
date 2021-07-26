@@ -1,0 +1,400 @@
+<template>
+  <div class="tagAdd">
+    <van-nav-bar
+      :left-text="leftText"
+      right-text="确定"
+      left-arrow
+      fixed
+      @click-left="leftBack"
+      @click-right="addTagFinish"
+    />
+    <p class="title">标签名称</p>
+    <van-field v-model="tagValue" placeholder="请输入标签名称" readonly @click="addTag" />
+    <p class="title">标签客户(0)</p>
+    <van-button
+      round
+      class="addBtn"
+      @click="tagCustomerSel"
+      icon="http://sc.xfd365.com/crmImages/guanlian.png"
+    >添加客户</van-button>
+    <div class="tagListCont" v-if="userData != ''">
+      <van-index-bar :index-list="indexList" :sticky-offset-top="stickyOffsetTop">
+        <div v-for="(item, index) in userData" :key="index" class="contentUl">
+          <van-index-anchor :index="index">{{index}}</van-index-anchor>
+          <van-swipe-cell
+            v-for="(item1, index1) in item"
+            :key="index1"
+            :name="item1.customer_id + '-' + item1.tagtype"
+            :before-close="beforeClose"
+          >
+            <div class="content" @click="toDetail(item1.customer_id, item1.tagtype, item1.stype, item1.linker_id, item1.site_id)">
+              <p :class="item1.serverName?'stationA':'stationB'">{{item1.customerName}} | {{item1.phones}}</p>
+              <p class="station" v-if="item1.serverName">{{item1.serverName}}</p>
+            </div>
+            <a :href="'tel:' + item1.phones" class="phoneTip">
+              <img src="../images/tel.png" alt />
+            </a>
+            <template #right>
+              <van-button square type="danger" text="删除" />
+            </template>
+          </van-swipe-cell>
+        </div>
+      </van-index-bar>
+    </div>
+    <div v-else-if="userData == '' && !loading && tag_id" class="zanwu">
+      <span>暂无客户</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "tagAdd",
+  data() {
+    return {
+      leftText: "新增个人标签",
+      tag_id: "",
+      tagValue: "",
+      tagOld: "", // 初始页面传来标签值
+      customer_type: "",
+      customer_ids: "", // 建行客户 id 以逗号相隔
+      station_ids: "", // 其他新增客户 id 以逗号相隔
+      loading: 0,
+      stickyOffsetTop: 50,
+      indexList: [],
+      userData: [],
+      ifNewAddTag: ""
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+    this.customer_ids = localStorage.getItem("customerIds");
+    this.station_ids = localStorage.getItem("stationIds");
+
+    var customer_type = this.$route.query.customer_type; //  1 其他新增客户  2 建行客户   0 全部
+    this.customer_type = customer_type;
+
+    var tag_id = this.$route.query.tag_id;
+    var tag = this.$route.query.tag;
+    var tagOld = this.$route.query.tagOld;
+    var ifNewAdd = this.$route.query.ifNewAdd;
+    this.ifNewAddTag = ifNewAdd;
+    this.tagOld = tagOld;
+    if (tag) {
+      // 编辑
+      this.leftText = "设置标签";
+      this.tag_id = tag_id;
+      this.tagValue = tag;
+      if (tag_id) {
+        this.getList();
+      }
+    } else {
+      // console.log("新增");
+    }
+  },
+  methods: {
+    // 返回按钮
+    leftBack() {
+      localStorage.removeItem("selectUser") // 给客户选择标签
+      // if (this.ifNewAddTag == 1) {
+      //   console.log("应删除新增标签");
+      //   this.$api.tagDelete({ customer_tag_id: this.tag_id }).then(res => {
+      //     // this.$toast(res.errmsg)
+      //   });
+      // }
+      
+      if(localStorage.getItem("customerIds") || localStorage.getItem("stationIds")){
+        // 删除标签下新增客户
+        let data={}
+          data.customer_tag_id = this.tag_id
+          data.customer_ids = localStorage.getItem("customerIds")
+          data.station_ids = localStorage.getItem("stationIds")
+        this.$api.tagUserDeleteAll(data).then(res=> {
+          if(res.errno == 0){
+            this.$router.push({
+              path: "/tagIndexList",
+              query: {
+                customer_type: this.customer_type
+              }
+            });
+          }
+          // this.$toast(res.errmsg)
+        })
+      }else{
+        this.$router.push({
+          path: "/tagIndexList",
+          query: {
+            customer_type: this.customer_type
+          }
+        });
+      }
+      
+    },
+    // 输入框添加或者修改标签功能
+    addTag() {
+      this.$router.push({
+        path: "/tagAdd",
+        query: {
+          customer_type: this.customer_type,
+          tag_id: this.tag_id,
+          tag: this.tagValue
+        }
+      });
+    },
+    // 确定保存
+    addTagFinish() {
+      // 执行更新标签功能
+      let that = this;
+      let selectUser =  localStorage.getItem("selectUser") // 给客户选择标签
+      
+      if(that.tagOld == that.tagValue && !selectUser){
+        this.$toast("请选择客户");
+        return;
+      }else if(that.ifNewAddTag == 1 || selectUser){
+        this.$router.push({
+          path: "/tagIndexList",
+          query: {
+            customer_type: that.customer_type
+          }
+        });
+        localStorage.removeItem("selectUser") // 给客户选择标签
+        localStorage.removeItem("customerIds") 
+        localStorage.removeItem("stationIds")
+        return
+      }else{
+        var data = {};
+        data.customer_tag_id = that.tag_id;
+        data.tag_name = that.tagValue;
+        this.$api.tagUpdate(data).then(res => {
+          if (res.errno == 0) {
+            this.$router.push({
+              path: "/tagIndexList",
+              query: {
+                customer_type: that.customer_type
+              }
+            });
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+        localStorage.removeItem("selectUser") // 给客户选择标签
+        localStorage.removeItem("customerIds") 
+        localStorage.removeItem("stationIds")
+      }
+    },
+    // 根据标签ID查找客户
+    getList() {
+      let that = this;
+      this.$api.tagUserList({ type: that.customer_type, customer_tag_id: that.tag_id}).then(res => {
+          if (res.errno === 0) {
+            that.loading = 0;
+            if (res.data) {
+              that.indexList = Object.keys(res.data);
+              that.userData = res.data;
+            }
+          }else{
+            that.loading = 0;
+            that.indexList = []
+            that.userData = []
+          }
+        });
+    },
+    // 侧滑删除标签下的客户
+    beforeClose({ name, position, instance }) {
+      switch (position) {
+        case "outside":
+          instance.close();
+          break;
+        case "right":
+          // console.log("删除" + name)
+          var array = name.split("-");
+          let data = {};
+          data.customer_tag_id = this.tag_id;
+          data.customer_id = array[0];
+          if (array[1] == "station") {
+            data.type = 1; // 1删除新增客户的标签，2删除建行客户的标签
+          } else {
+            data.type = 2;
+          }
+          this.$api.tagUserDelete(data).then(res => {
+            if (res.errno === 0) {
+              this.getList();
+            } else {
+              this.$toast(res.errmsg);
+            }
+          });
+
+          instance.close();
+          break;
+      }
+    },
+    // 选择客户
+    tagCustomerSel() {
+      if (this.tagValue) {
+        this.$router.push({
+          path: "/tagCustomerSel",
+          query: {
+            customer_type: this.customer_type,
+            tag_id: this.tag_id,
+            tag: this.tagValue,
+            tagOld: this.tagOld,
+          }
+        });
+      } else {
+        this.$toast("标签名称为空");
+      }
+    },
+    toDetail(id, tagtype, stype, linker_id,  site_id) {
+      // console.log(id+'-'+tagtype+'-'+stype+'-'+linker_id+'-'+site_id)
+      if (tagtype == "customer") {
+        // console.log("建行客户")
+        this.$router.push({
+          path: "/ccbCustomerDetail",
+          query: {
+            id: id,
+            site_id: site_id
+          }
+        });
+      } else {
+        if(stype == 1){ // stype  1是关联客户  linker_id是主客户id
+          // console.log("新增客户--关联")
+          localStorage.setItem("stationActive", 2) // 进入详情显示关联客户
+          this.$router.push({
+            path: "/customerDetail",
+            query: {
+              id: linker_id,
+              site_id: site_id
+            }
+          });
+        }else{
+          //  console.log("新增客户--主客户")
+          this.$router.push({
+            path: "/customerDetail",
+            query: {
+              id: id,
+              site_id: site_id
+            }
+          });
+        }
+      }
+      
+    }
+  }
+};
+</script>
+<style lang="less">
+.tagAdd {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    z-index: 2;
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  p.title {
+    padding: 0 15px;
+    font-size: 14px;
+    line-height: 32px;
+    &:last-of-type {
+      margin-top: 10px;
+    }
+  }
+  .addBtn {
+    margin-left: 15px;
+    height: 32px;
+    line-height: 32px;
+  }
+  .tagListCont {
+    margin-top: 10px;
+    border-top: 1px solid #e2e1e1;
+  }
+  .van-index-bar__index{
+    line-height: 18px;
+    color: #999999;
+  }
+  .van-index-bar__index--active,
+  .van-index-anchor,
+  .van-index-anchor--sticky{
+    color: #1C92FF;
+  }
+  .contentUl{
+    .van-swipe-cell{
+      margin: 0 15px;
+      border-bottom: 1px solid #eee;
+      &:nth-of-type(2){
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+      &:last-child{
+        border-bottom: none;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+      }
+    }
+  }
+  .van-swipe-cell__wrapper{
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+  }
+  .content {
+    padding: 0 0 10px 10px;
+    min-height: 40px;
+    background: #fff;
+    font-size: 14px;
+    flex: 1;
+    p {
+      &.stationA {
+        padding-top: 8px;
+      }
+      &.stationB {
+        padding-top: 16px;
+      }
+      &.station {
+        font-size: 12px;
+        color: #666666;
+      }
+    }
+  }
+  .phoneTip{
+    align-items: center;
+    padding: 10px;
+      img{
+        width: 30px;
+      }
+    }
+  .van-button--danger{
+    height: 100%;
+  }
+
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    span.tip {
+      color: red;
+    }
+    img {
+      width: 80%;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

@@ -1,0 +1,379 @@
+<template>
+  <div class="addGlCustomer">
+    <van-nav-bar :left-text="leftText" fixed left-arrow @click-left="leftBack" />
+
+    <div class="marBottom">
+      <van-cell
+        title="客户标签类型"
+        @click="tagList"
+        is-link
+        :value="typeName"
+        icon="http://sc.xfd365.com/crmImages/tag.png"
+      />
+    </div>
+
+    <div class="marBottom">
+      <van-field
+        placeholder="请输入客户姓名"
+        label="客户名称"
+        left-icon="http://sc.xfd365.com/crmImages/name.png"
+        input-align="right"
+        v-model="name"
+      />
+      <van-field
+        placeholder="请输入手机号码"
+        type="tel"
+        label="联系电话"
+        left-icon="http://sc.xfd365.com/crmImages/phone.png"
+        input-align="right"
+        v-model="mobile"
+        maxlength="11"
+      />
+      <van-field
+        placeholder="请输入详情地址"
+        label="详情地址"
+        left-icon="http://sc.xfd365.com/crmImages/address.png"
+        input-align="right"
+        v-model="address"
+      />
+      <van-field
+        placeholder="请输入所属行业"
+        label="所属行业"
+        left-icon="http://sc.xfd365.com/crmImages/hangye.png"
+        input-align="right"
+        v-model="hangye"
+      />
+      <van-field
+        placeholder="请输入业务联系"
+        label="业务联系"
+        left-icon="http://sc.xfd365.com/crmImages/yewu.png"
+        input-align="right"
+        v-model="yewu"
+      />
+    </div>
+
+    <div class="marBottom">
+      <van-cell title="备注信息" icon="http://sc.xfd365.com/crmImages/beizhu.png"></van-cell>
+      <van-field v-model="message" rows="2" autosize type="textarea" placeholder="请输入备注内容" />
+    </div>
+
+    <van-popup v-model="isType">
+      <div class="content">
+        <div class="imgDiv">
+          <img src="http://sc.xfd365.com/crmImages/tags.png" alt />
+        </div>
+        <p>*可以选择多种标签</p>
+        <ul>
+          <li
+            v-for="(item,index) in type"
+            :key="index"
+            :class="item.ischecked?'active':''"
+            @click="item.ischecked = !item.ischecked"
+          >{{item.tag_name}}</li>
+        </ul>
+        <button @click="closeType">确定</button>
+      </div>
+    </van-popup>
+    <!-- <img src="http://sc.xfd365.com/crmImages/tags.png" alt v-show="isType" /> -->
+
+    <button class="save" v-if="hidshowFooter" @click="save">保存</button>
+  </div>
+</template>
+<script>
+import AreaList from "../../styles/area";
+export default {
+  name: "addGlCustomer",
+  data() {
+    return {
+      leftText: "新增关联客户",
+      isType: false,
+      name: "",
+      mobile: "",
+      address: "",
+      hangye: "",
+      yewu: "",
+      message: "",
+      userName: "",
+      typeName: "请选择客户标签类型",
+      label: "",
+      typeNameArray: [],
+      customer_tag_id: "",
+      type: [
+        // {
+        //   title: "益农社站长",
+        //   ischecked: false
+        // }
+      ],
+      station_id: "",
+      savestation_id: "",
+
+      docmHeight: document.documentElement.clientHeight,  //默认屏幕高度       
+      showHeight:  '0',   //实时屏幕高度        
+      hidshowFooter:true,  //显示或者隐藏footer, 
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+
+    window.onresize = ()=>{   // 实时屏幕高度
+		  this.showHeight = document.body.clientHeight     
+    }
+    
+    document.documentElement.scrollTop = 0;
+
+    this.station_id = this.$route.query.id;
+    this.savestation_id = this.$route.query.savestation_id;
+    if (this.savestation_id) {
+      this.leftText = "编辑关联客户";
+
+      this.$api.stationDetail({ station_id: this.savestation_id , type : 1}).then(res => {
+        if (res.errno === 0) {
+          this.label = res.data.label
+          this.customer_tag_id = res.data.customer_tag_id
+          if (this.label) {
+            // let typeNameArray = this.label.substr(0, this.label.length - 1).split("#");
+            let typeNameArray = this.label.substr(0, this.label.length).split("#");
+            this.typeNameArray = typeNameArray
+            var typeName = "";
+            typeNameArray.forEach(ele => {
+              typeName += ele + "、";
+            });
+          }
+          this.typeName = typeName;
+          this.name = res.data.name;
+          this.mobile = res.data.mobile;
+          this.address = res.data.address;
+          this.hangye = res.data.industry;
+          this.yewu = res.data.business;
+          this.message = res.data.note;
+        }
+      });
+    }
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    },
+    closeType() {
+      var type = this.type;
+      var arr = type.filter(ele => {
+        return ele.ischecked;
+      });
+      arr = JSON.parse(JSON.stringify(arr));
+      var typeNameArray = []
+      var typeName = "";
+      var label = "";
+      var customer_tag_id = "";
+      arr.forEach(ele => {
+        typeNameArray.push(ele.tag_name)
+        typeName += ele.tag_name + "、";
+        label += ele.tag_name + "#";
+        customer_tag_id += ele.customer_tag_id + ","
+      });
+      this.typeNameArray = typeNameArray
+      this.typeName = typeName;
+      this.label = label;
+      this.customer_tag_id = customer_tag_id;
+      this.isType = false;
+    },
+    tagList(){ // 获取标签列表
+      let that = this;
+      that.isType = true
+      this.$api.tagList({type: 2}).then(res=>{
+        if(res.errno === 0){
+          if(res.data){
+            that.type = []
+            res.data.forEach(ele => {
+              let tag_name = ele.tag_name
+              if(that.typeNameArray.indexOf(tag_name) > -1){
+                ele.ischecked = true
+              }else{
+                ele.ischecked = false
+              }
+              that.type.push(ele)
+            });
+          }
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    },
+    save() {
+      if (this.name.trim().length == 0) {
+        this.$toast("请填写客户名称！");
+        return;
+      }
+      let reg = /^1[0-9]{10}$/;
+      if (this.mobile.trim().length == 0) {
+        this.$toast("请输入联系方式！");
+        return;
+      }
+      if (this.mobile.length <= 10 || !reg.test(this.mobile)) {
+        this.$toast("请输入正确的联系方式！");
+        return;
+      }
+      // console.log(this.customer_tag_id)
+      if (this.station_id) { // 已存在客户添加关联客户
+        // console.log("已存在客户添加关联客户");
+        this.$api.linkStationSave({
+            savestation_id: this.savestation_id, // 关联客户ID
+            linker_id: this.station_id, // 客户ID
+            label: this.label,
+            customer_tag_id: this.customer_tag_id,
+            name: this.name,
+            mobile: this.mobile,
+            address: this.address,
+            industry: this.hangye,
+            business: this.yewu,
+            note: this.message,
+            stype: 1 // 0普通客户，1关联客户
+          })
+          .then(res => {
+            this.$toast(res.errmsg);
+            if (res.errno === 0) {
+              this.$router.go(-1);
+              localStorage.setItem("editGlustomer", 2) // 控制编辑关联客户返回仍定位在详情的关联模块
+            }
+          });
+      } else {
+        // console.log("先增加关联客户，在保存客户");
+        this.$api.stationSave({
+            label: this.label,
+            customer_tag_id: this.customer_tag_id,
+            name: this.name,
+            mobile: this.mobile,
+            address: this.address,
+            industry: this.hangye,
+            business: this.yewu,
+            note: this.message,
+            stype: 1 // 0普通客户，1关联客户
+          })
+          .then(res => {
+            this.$toast(res.errmsg);
+            if (res.errno === 0) {
+              // this.$router.go(-1);
+              this.$router.push({
+                path: "/addCustomer",
+                query: {
+                  linker_id: res.data.station_id,
+                  linker_name: this.name
+                }
+              });
+            }
+          });
+      }
+    }
+  },
+  watch:{
+    showHeight: function(){
+      if(this.docmHeight > this.showHeight){
+        this.hidshowFooter = false
+      }else{
+        this.hidshowFooter = true
+      }
+    }
+  },
+};
+</script>
+<style lang="less">
+.addGlCustomer {
+  // min-height: 100%;
+  min-height: calc(100% - 100px);
+  padding-top: 50px;
+  padding-bottom: 50px;
+  overflow-y: scroll;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+
+  .van-popup {
+    width: 90%;
+    border-radius: 10px;
+    .content {
+      .imgDiv{
+        height: 36px;
+        background: rgba(0, 0, 0, 0.7);
+        img{
+          width: 70px;
+          height: 70px;
+        }
+      }
+      p {
+        text-align: right;
+        color: #aaaaaa;
+        margin-top: 15px;
+        margin-right: 15px;
+      }
+      ul {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0 15px;
+        li {
+          height: 30px;
+          padding: 0 10px;
+          font-size: 16px;
+          text-align: center;
+          border: 1px solid #1c92ff;
+          background: #e8f4ff;
+          line-height: 30px;
+          border-radius: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+        }
+        li.active {
+          background: #1c92ff;
+          border: 1px solid #1c92ff;
+          color: #fff;
+        }
+      }
+      button {
+        width: 100%;
+        height: 49px;
+        border: none;
+        border-top: 1px solid #eeeeee;
+        background: #fff;
+        margin-top: 25px;
+        color: #1c92ff;
+        font-size: 16px;
+      }
+    }
+  }
+  > img {
+    width: 70px;
+    height: 70px;
+    position: fixed;
+    top: 50%;
+    margin-top: -140px;
+    left: 5%;
+    z-index: 9999;
+  }
+
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>

@@ -1,0 +1,1099 @@
+<template>
+  <div class="ccbCustomerDetail">
+    <!-- <van-nav-bar
+            left-text="北京新希望有限责任公司"
+            left-arrow
+            @click-left="$router.go(-1)"
+    />-->
+    <div class="top">
+      <p @click="leftBack">
+        <img src="../../images/goback.png" alt />
+        <span>{{stationDetail.serverName}}</span>
+      </p>
+      <div>
+        <p>
+          <img src="../../images/name.png" alt />
+          <span>{{stationDetail.customerName}}</span>
+        </p>
+        <p>
+          <img src="../../images/secondBank-b.png" alt />
+          <span>{{stationDetail.secondBank}}</span>
+        </p>
+      </div>
+    </div>
+    <!-- top -->
+
+    <van-tabs @click="onClick" title-active-color="#1c92ff" line-width="0" line-height="0" v-model="stationActive">
+      <van-tab title="资料详情" name="资料详情">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/name.png" alt /></span>
+            <span class="title">业主姓名</span>
+            <span class="desc">{{stationDetail.customerName}}</span>
+          </div>
+          <template  v-if="stationDetail.phones">
+            <a :href="'tel:' + stationDetail.phones" class="listLi">
+              <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/phone.png" alt /></span>
+              <span class="title">联系方式</span>
+              <span class="desc">{{stationDetail.phones}}</span>
+            </a>
+          </template>
+          <template v-else>
+            <van-field placeholder="请输入手机号码" type="tel" label="联系电话" left-icon="http://sc.xfd365.com/crmImages/phone.png" input-align="right" v-model="phones" @blur="editPhones" maxlength="11"/>
+          </template>
+          <div class="listLi tagLi" @click="tagList">
+          <!-- <div class="listLi tagLi" @click="isType=true"> -->
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/tag.png" alt /></span>
+            <span class="title">客户标签</span>
+            <span class="desc">
+              <span v-for="(item, index) in labelArray" :key="index" class="tips">{{item}}</span>
+            </span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/noServer.png" alt /></span>
+            <span class="title">服务点编号</span>
+            <span class="desc">{{stationDetail.serverNo}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/customerName.png" alt /></span>
+            <span class="title">服务点名称</span>
+            <span class="desc">{{stationDetail.serverName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/noIntnet.png" alt /></span>
+            <span class="title">所属网点编号</span>
+            <span class="desc">{{stationDetail.netNo}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/InternetName.png" alt /></span>
+            <span class="title">所属网点名称</span>
+            <span class="desc">{{stationDetail.netName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/firstBank.png" alt /></span>
+            <span class="title">所属一级行</span>
+            <span class="desc">{{stationDetail.firstBank}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/secondBank.png" alt /></span>
+            <span class="title">所属二级行</span>
+            <span class="desc">{{stationDetail.secondBank}}</span>
+          </div>
+           <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/date.png" alt /></span>
+            <span class="title title7">服务点激活日期</span>
+            <span class="desc">{{activeDate}}</span>
+          </div>
+
+        </div>
+        <!-- <div class="marBottom">
+          <van-field
+            placeholder="业主姓名"
+            label="业主姓名"
+            readonly
+            left-icon="http://sc.xfd365.com/crmImages/name.png"
+            input-align="right"
+            v-model="stationDetail.customerName"
+          />
+        </div> -->
+        <p class="dataTitle">交易数据统计</p>
+        <div class="numDetail" style="margin-bottom: 0">
+          <div class="ulDiv">
+            <div>
+              <span>{{stationDetail.server_year_deal_num}}</span>
+              <span>本年交易笔数</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_year_deal_money}}</span>
+              <span>本年交易金额</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_deal_num}}</span>
+              <span>累计交易笔数</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_deal_money}}</span>
+              <span>累计交易金额</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_sign_num}}</span>
+              <span>服务点签约卡量</span>
+            </div>
+            <div>
+              <span>{{stationDetail.server_signyi_num}}</span>
+              <span>签约益农卡量</span>
+            </div>
+          </div>
+        </div>
+      </van-tab>
+      <van-tab title="跟进动态" name="跟进动态">
+        <div v-for="(item,index) in genjin" :key="index" class="genjinlCont">
+          <p class="fllow-title">{{item.follow_time}}</p>
+          <ul @click="genjinDetail(item.follow_id)">
+            <li>
+              <img src="../../images/avatar1.png" alt />
+              <span>{{userName}}</span>
+              <span>市场专员</span>
+            </li>
+            <li>
+              <img src="../../images/info.png" alt />
+              <span>{{item.content}}</span>
+            </li>
+            <li>
+              <img src="../../images/time.png" alt />
+              <span>{{item.follow_time}}</span>
+            </li>
+            <li v-if="item.address">
+              <img src="../../images/time.png" alt />
+              <span>{{item.address}}</span>
+            </li>
+            <li>
+              <img src="../../images/customerStatus.png" alt />
+              <span v-if="item.type==1">到访</span>
+              <span v-else-if="item.type==2">电话</span>
+              <span v-else-if="item.type==3">微信</span>
+              <span v-else-if="item.type==4">短信</span>
+              <span v-else-if="item.type==5">其他</span>
+            </li>
+          </ul>
+          <p class="detailBtn" @click="genjinDetail(item.follow_id)">查看详情</p>
+        </div>
+      </van-tab>
+      <van-tab title="站点基本情况">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/name.png" alt /></span>
+            <span class="title">站长姓名</span>
+            <span class="desc">{{tab1Name}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/phone.png" alt /></span>
+            <span class="title">签约手机号</span>
+            <span class="desc">{{tab1Mobile}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/card.png" alt /></span>
+            <span class="title">身份证号</span>
+            <span class="desc">{{tab1Card}}</span>
+          </div>
+        </div>
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/nation.png" alt /></span>
+            <span class="title">民族</span>
+            <span class="desc">{{tab1Nation}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/sex.png" alt /></span>
+            <span class="title">性别</span>
+            <span class="desc">{{tab1Sex}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/birthday.png" alt /></span>
+            <span class="title">出生年月</span>
+            <span class="desc">{{tab1Birthday}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/education.png" alt /></span>
+            <span class="title">教育程度</span>
+            <span class="desc">{{tab1Educatione}}</span>
+          </div>
+        </div>
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/wechat.png" alt /></span>
+            <span class="title">微信号</span>
+            <span class="desc">{{tab1Wechat}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/zuoji.png" alt /></span>
+            <span class="title">住宅电话</span>
+            <span class="desc">{{tab1Telphone}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/youbian.png" alt /></span>
+            <span class="title">邮政编码</span>
+            <span class="desc">{{tab1Birthday}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/dingwei.png" alt /></span>
+            <span class="title">邮寄地址</span>
+            <span class="desc">{{tab1Region}}</span>
+          </div>
+        </div>
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/marriage.png" alt /></span>
+            <span class="title">婚姻状况</span>
+            <span class="desc">{{tab1Marriage}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/name.png" alt /></span>
+            <span class="title">配偶姓名</span>
+            <span class="desc">{{tab1SpouseName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/phone.png" alt /></span>
+            <span class="title">配偶联系方式</span>
+            <span class="desc">{{tab1SpousMobile}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/card.png" alt /></span>
+            <span class="title">配偶身份证号</span>
+            <span class="desc">{{tab1SpousCard}}</span>
+          </div>
+        </div>
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="站点情况">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/business.png" alt /></span>
+            <span class="title">营业执照名称</span>
+            <span class="desc">{{tab2BusName}}</span>
+          </div>
+        </div>
+
+        <van-cell title="营业执照" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+        <van-uploader v-model="tab2BusPicList" :deletable="deletable" :show-upload="showUpload" />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="站点经营情况">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/busentity.png" alt /></span>
+            <span class="title">经营主体</span>
+            <span class="desc">{{tab3Busentity}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/busname.png" alt /></span>
+            <span class="title">经营场所名称</span>
+            <span class="desc">{{tab3BusName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/busarea.png" alt /></span>
+            <span class="title">经营面积</span>
+            <span class="desc">{{tab3BusArea}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/busmoney.png" alt /></span>
+            <span class="title">年交易额</span>
+            <span class="desc">{{tab3BusMoney}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/busnumber.png" alt /></span>
+            <span class="title">从业人数</span>
+            <span class="desc">{{tab3BusNumber}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/dingwei.png" alt /></span>
+            <span class="title">经营地址</span>
+            <span class="desc">{{tab3BusRegion}}</span>
+          </div>
+        </div>
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+      <van-tab title="站点使用情况">
+        <div class="marBottom">
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/cardnumber.png" alt /></span>
+            <span class="title title10">持有信用卡数量</span>
+            <span class="desc">{{tab4CardNumber}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/loan.png" alt /></span>
+            <span class="title">贷款情况</span>
+            <span class="desc">{{tab4Loan}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/payment.png" alt /></span>
+            <span class="title">常用收款方式</span>
+            <span class="desc">{{tab4Payment}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/hebanknum.png" alt /></span>
+            <span class="title title10">站点合作银行数量</span>
+            <span class="desc">{{tab4BankNum}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/firstBank.png" alt /></span>
+            <span class="title">合作银行名称</span>
+            <span class="desc">{{tab4BankName}}</span>
+          </div>
+          <div class="listLi">
+            <span class="iconImg"><img src="http://sc.xfd365.com/crmImages/nearybank.png" alt /></span>
+            <span class="title title10">1公里内银行网点数量</span>
+            <span class="desc">{{tab4NearNum}}</span>
+          </div>
+        </div>
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+      </van-tab>
+    </van-tabs>
+
+    <ul class="bottom">
+      <li @click="toGenjin(customer_id, stationDetail.customerName, site_id)">
+        <img src="../../images/genjin.png" alt />
+        <span>写新跟进</span>
+      </li>
+      <li @click="isPhone=true">
+        <img src="../../images/telephone.png" alt />
+        <span>拨打电话</span>
+      </li>
+      <li @click="siteStatiseAdd(customer_id, site_id)">
+        <img src="../../images/inzhandian.png" alt />
+        <span>站点统计</span>
+      </li>
+    </ul>
+    <van-action-sheet class="vanSheet" v-model="isPhone" title="拨打电话" :round="isRound">
+      <a
+        :href="'tel:' + stationDetail.phones"
+        style="color: #000;padding:20px;display:block"
+        @click="dialNum"
+      >{{stationDetail.phones}}</a>
+    </van-action-sheet>
+
+    <van-popup v-model="isType" @click-overlay="closePopup">
+      <div class="content">
+        <div class="imgDiv">
+          <img src="http://sc.xfd365.com/crmImages/tags.png" alt />
+        </div>
+        <p>*可以选择多种标签</p>
+        <ul>
+          <li
+            v-for="(item,index) in type"
+            :key="index"
+            :class="item.ischecked?'active':''"
+            @click="item.ischecked = !item.ischecked"
+          >{{item.tag_name}}</li>
+        </ul>
+        <button @click="closeType">确定</button>
+      </div>
+    </van-popup>
+  </div>
+</template>
+<script>
+export default {
+  name: "ccbCustomerDetail",
+  data() {
+    return {
+      stationActive: "资料详情",
+      stationDetail: {},
+      genjin: [],
+      userName: "",
+      activeDate: "",
+      customer_id: '',
+      labelArray: [],
+      isType: false,
+      type: [],
+      deletable: false, // 是否展示删除按钮
+      showUpload: false, // 是否展示上传区域
+
+      site_id: '',
+      tab1Name: "",
+      tab1Mobile: "",
+      tab1Card: "",
+      tab1Nation: "",
+      tab1Sex: "",
+      tab1Birthday: "",
+      tab1Educatione: "",
+      tab1Wechat: "",
+      tab1Telphone: "",
+      tab1Youbian: "",
+      tab1Region: "",
+      tab1Marriage: "",
+      tab1SpouseName: "",
+      tab1SpousMobile: "",
+      tab1SpousCard: "",
+
+      tab2BusName: "",
+      tab2BusPicList: [],
+      tab2BusPics: "",
+
+      tab3Busentity: "",
+      tab3BusName: "",
+      tab3BusArea: "",
+      tab3BusMoney: "",
+      tab3BusNumber: "",
+      tab3BusRegion: "",
+
+      tab4CardNumber: "",
+      tab4Loan: "",
+      tab4Payment: "",
+      tab4BankNum: "",
+      tab4BankName: "",
+      tab4NearNum: "",
+
+      userName: "",
+      currentDateNow: "",
+
+      phones: "",
+      isPhone: false,
+      isRound: false
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+    
+    var customer_id = this.$route.query.id;
+    var site_id = this.$route.query.site_id;
+    this.customer_id = customer_id
+    this.site_id = site_id
+    this.userName = localStorage.getItem("userName");
+
+    let toCustomDetail = localStorage.getItem("toCustomDetail")
+    if(toCustomDetail){
+      this.stationActive = "跟进动态"
+    } else{
+      this.stationActive = "资料详情"
+    }
+
+    // 客户详情
+    this.$api.ccbCustomerDetail({ customer_id: customer_id }).then(res => {
+      // console.log(res)
+      if (res.errno === 0) {
+        if (res.data) {
+          this.stationDetail = res.data;
+          this.site_id = res.data.site_id
+          if(res.data.activeDate) {
+             let activeDateArray = res.data.activeDate.split("/");
+            this.activeDate = activeDateArray[2] + "-" + activeDateArray[0] + "-" + activeDateArray[1];
+          }
+         
+
+            if(res.data.label){
+              let label = res.data.label
+              this.labelArray = label.substr(0, label.length).split("#");
+            }else{
+              this.labelArray = []
+            }
+          this.getDetail()
+        }
+      } else {
+        this.$toast(res.errmsg);
+      }
+    });
+    // 跟进列表
+    this.$api.stationGenjin({ customer_id: customer_id, cls: 2 }).then(res => {
+      if (res.errno === 0) {
+        if (res.data.data) {
+          this.genjin = res.data.data;
+        }
+      }
+    });
+
+    
+  },
+  methods: {
+    getDetail () {
+      // 站点统计详情
+      this.$api.siteStatiseDetail({ site_id: this.site_id }).then(res => {
+        if (res.errno === 0) {
+          if (res.data) {
+            this.tab1Name = res.data.site_name ? res.data.site_name : '无';
+            this.tab1Mobile = res.data.sign_phone ? res.data.sign_phone : '无';
+            this.tab1Card = res.data.idcard ? res.data.idcard : '无';
+            this.tab1Nation = res.data.nation ? res.data.nation : '无';
+            this.tab1Sex = res.data.sex ? res.data.sex : '无';
+            this.tab1Birthday = res.data.date_of_birth ? res.data.date_of_birth : '无';
+            this.tab1Educatione = res.data.edu ? res.data.edu : '无';
+            this.tab1Wechat = res.data.wx_mobile ? res.data.wx_mobile : '无';
+            this.tab1Telphone = res.data.address_phone ? res.data.address_phone : '无';
+            this.tab1Youbian = res.data.postal_code ? res.data.postal_code : '无';
+            let you_address = res.data.you_address;
+            if (you_address) {
+              if (you_address.indexOf("/") == -1) {
+                // 不包含/
+                this.tab1Addtail = you_address;
+              } else {
+                let addArr = you_address
+                  .substr(0, you_address.length)
+                  .split("/");
+                addArr.forEach(ele => {
+                  this.tab1Region += ele;
+                });
+              }
+            }else{
+              this.tab1Region = "无";
+            }
+            this.tab1Marriage = res.data.marital ? res.data.marital : '无';
+            this.tab1SpouseName = res.data.spouse_name ? res.data.spouse_name : '无';
+            this.tab1SpousMobile = res.data.spouse_phone ? res.data.spouse_phone : '无';
+            this.tab1SpousCard = res.data.spouse_idcard ? res.data.spouse_idcard : '无';
+            this.tab2BusName = res.data.business_name ? res.data.business_name : '无';
+            this.tab2BusPics = res.data.business_pic;
+            if (this.tab2BusPics) {
+              var pics = this.tab2BusPics;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({ url: item }));
+              this.tab2BusPicList = JSON.parse(JSON.stringify(r));
+            } else {
+              this.tab2BusPics = "";
+              this.tab2BusPicList = [];
+            }
+            // console.log(this.tab2BusPicList)
+            this.tab3Busentity = res.data.business ? res.data.business : '无';
+            this.tab3BusName = res.data.business_site_name ? res.data.business_site_name : '无';
+            this.tab3BusArea = res.data.business_size ? res.data.business_size : '无';
+            this.tab3BusMoney = res.data.year_amount ? res.data.year_amount : '无';
+            this.tab3BusNumber = res.data.the_num ? res.data.the_num : '无';
+            let business_address = res.data.business_address;
+            if (business_address) {
+              if (business_address.indexOf("/") == -1) {
+                // 不包含/
+                this.tab3BusRegion = business_address;
+              } else {
+                let addArr = business_address
+                  .substr(0, business_address.length)
+                  .split("/");
+                addArr.forEach(ele => {
+                  this.tab3BusRegion += ele;
+                });
+              }
+            }else{
+              this.tab3BusRegion = '无'
+            }
+
+            this.tab4CardNumber = res.data.hold_card ? res.data.hold_card : '无';
+            this.tab4Loan = res.data.loans ? res.data.loans : '无';
+            this.tab4Payment = res.data.payment_term ? res.data.payment_term : '无';
+            this.tab4BankNum = res.data.site_he_bank ? res.data.site_he_bank : '无';
+            this.tab4BankName = res.data.site_he_bankname ? res.data.site_he_bankname : '无';
+            this.tab4NearNum = res.data.one_bane ? res.data.one_bane : '无';
+            this.currentDateNow = res.data.add_time.substr(0, 10)
+          }
+        }else{
+          this.currentDateNow = "暂未填写"
+        }
+      });
+    },
+    // 若无联系方式可修改联系方式
+    editPhones() {
+      let that = this;
+      let telreg = /^1[3456789]\d{9}$/;
+      if (!telreg.test(that.phones)) {
+        that.$toast('请输入正确的手机号!')
+        return
+      } 
+      if(that.stationDetail.customer_id) {
+        this.$api.phoneMod({customer_id: that.stationDetail.customer_id, phone: that.phones}).then(res=>{
+          if(res.errno === 0){
+              that.stationDetail.phones = that.phones
+          }else{
+            this.$toast(res.errmsg)
+          }
+        })
+      }
+     
+    },
+    dialNum(){
+      // 统计打电话次数
+      this.$api.dialNum().then(res=>{})
+    },
+    siteStatiseAdd(id, site_id){
+      this.$router.push({
+        path: "/siteAdd",
+        query: {
+          id: id,
+          site_id: site_id,
+          cls: 2
+        }
+      });
+    },
+    leftBack(){
+      this.$router.go(-1)
+    },
+    onClick() {
+      document.documentElement.scrollTop = 0;
+    },
+    closeType() {
+      var type = this.type;
+      var arr = type.filter(ele => {
+        return ele.ischecked;
+      });
+      arr = JSON.parse(JSON.stringify(arr));
+      var labelArray = []
+      var customer_tag_id = "";
+      arr.forEach(ele => {
+        labelArray.push(ele.tag_name)
+        customer_tag_id += ele.customer_tag_id + ","
+      });
+      this.isType = false;
+
+      var data={}
+        data.type = 2 // 建行客户
+        data.user_id = this.customer_id
+        data.customer_tag_id = customer_tag_id
+        this.$api.tagUserUpdate(data).then(res=>{
+          localStorage.setItem("tagupdate", "1") // 判断是否更新标签操作，到列表页面是否需要刷新
+          if(res.errno === 0){
+            this.labelArray = labelArray
+          }else{
+            this.$toast(res.errmsg)
+          }
+        })
+    },
+    closePopup(){
+      localStorage.removeItem("tagupdate")
+    },
+    toGenjin(id, name, site_id) {
+      this.$router.push({
+        path: "/customerGenjin",
+        query: {
+          customer_id: id,
+          station_id: 0,
+          customerName: name,
+          cls: 2,
+          site_id: site_id
+        }
+      });
+    },
+    tagList(){ // 获取标签列表
+      let that = this;
+      that.isType = true
+      this.$api.tagList({type: 2}).then(res=>{
+        if(res.errno === 0){
+          if(res.data){
+            that.type = []
+            res.data.forEach(ele => {
+              let tag_name = ele.tag_name
+              if(that.labelArray.indexOf(tag_name) > -1){
+                ele.ischecked = true
+              }else{
+                ele.ischecked = false
+              }
+              that.type.push(ele)
+            });
+          }
+        }else{
+          this.$toast(res.errmsg)
+        }
+      })
+    },
+    genjinDetail(follow_id){
+      this.$router.push({
+          path: "/genjinDetail",
+          query: {
+            follow_id: follow_id
+          }
+        });
+    }
+  },
+  destroyed: function () {
+    // 离开页面时清空缓存状态
+    localStorage.removeItem("toCustomDetail")
+  }
+  
+};
+</script>
+<style lang="less">
+.ccbCustomerDetail {
+  min-height: calc(100% - 130px);
+  background: #f5f5f5;
+  padding-top: 130px;
+  margin-bottom: 50px;
+  .top {
+    position: fixed;
+    top: 0;left: 0;z-index: 1;
+    background: url(../../images/topBg.jpg) no-repeat;
+    width: 100%;
+    height: 130px;
+    background-size: 100% 130px;
+    > p {
+      height: 50px;
+      line-height: 50px;
+      color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding-left: 16px;
+      img {
+        width: 10px;
+        height: 16px;
+        margin-right: 10px;
+      }
+      span {
+        line-height: 18px;
+      }
+    }
+    > div {
+      display: flex;
+      justify-content: space-around;
+      p {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-size: 14px;
+        margin-top: 10px;
+        img {
+          width: 15px;
+          height: 15px;
+          margin-bottom: 10px;
+        }
+      }
+      p:first-child {
+        img {
+          width: 13px;
+          height: 13px;
+        }
+      }
+    }
+  }
+  .listLi {
+    font-size: 14px;
+    display: flex;
+    margin: 0 15px;
+    padding: 10px 0;
+    color: #444444;
+    border-bottom: 1px solid #eeeeee;
+    &.tagLi{
+      padding-right: 14px;
+      background: url(../../images/jiantou.png) no-repeat right;
+      background-size: auto 16px;
+    }
+    .iconImg{
+      width: 16px;
+      text-align: center;
+      flex: none;
+      margin-right: 5px;
+      img {
+        max-width: 16px;
+        max-height: 16px;
+        margin-top: 2px;
+      }
+    }
+    .title {
+      flex: none;
+      width: 90px;
+      &.title7{
+        width: 110px;
+      }
+      &.title10{
+        width: 150px;
+      }
+    }
+    .desc {
+      width: 100%;
+      text-align: right;
+      .tips{
+        color: #1c92ff;
+        padding: 0 5px;
+        display: inline-block;
+        border-radius: 10px;
+        margin: 2px;
+        border: 1px solid #1c92ff;
+      }
+    }
+  }
+  .dataTitle {
+    padding: 0 15px;
+    font-size: 14px;
+    line-height: 32px;
+  }
+  .numDetail {
+    background: #ffffff;
+    .ulDiv {
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      div {
+        width: 25%;
+        text-align: center;
+        padding: 10px 0;
+        float: left;
+        position: relative;
+        &::after {
+          position: absolute;
+          content: " ";
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 1px;
+          background: #eeeeee;
+        }
+        &::before {
+          position: absolute;
+          content: " ";
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 1px;
+          background: #eeeeee;
+        }
+        span {
+          display: block;
+          line-height: 24px;
+          &:first-child {
+            color: #444444;
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+
+  .van-tabs__wrap--scrollable .van-tab{
+    flex-basis: 30% !important;
+  }
+  .van-tabs {
+    .van-tabs__wrap{
+      position: fixed;
+      left: 0;right: 0; z-index: 1;
+    }
+    .van-tabs__content{
+      padding-top: 44px;
+    }
+    .genjinlCont{
+      position: relative;
+      .detailBtn{
+        position: absolute;
+        right: 15px;
+        bottom: -10px;
+        padding: 4px 20px;
+        color: #ffffff;
+        height: 18px;
+        line-height: 18px;
+        border-radius: 30px;
+        background: linear-gradient(90deg, #0e6ef0 0%, #1c92ff 100%);
+      }
+    }
+    .van-tab__pane {
+      > div {
+        p.fllow-title {
+          font-size: 12px;
+          padding-left: 20px;
+          height: 24px;
+          line-height: 24px;
+          color: #aaa;
+        }
+        ul:first-of-type {
+          padding: 10px 20px;
+          border-bottom: 1px solid #eeeeee;
+          background: #fff;
+          li {
+            // height: 30px;
+            line-height: 24px;
+            color: #aaa;
+            font-size: 14px;
+            // display: flex;
+            // align-items: center;
+            position: relative;
+            &:first-child{
+              line-height: 30px;
+            }
+            img {
+              width: 15px;
+              height: 15px;
+              position: absolute;
+              left: 0;
+              top: 3px;
+            }
+            span {
+              display: inline-block;
+              line-height: 18px;
+              padding-left: 25px;
+            }
+            &:nth-child(2){
+              span{
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                width: calc(100% - 20px);
+              }
+            }
+          }
+          li:first-child {
+            margin-bottom: 5px;
+            img {
+              width: 20px;
+              height: 20px;
+              position: absolute;
+              left: 0;
+              top: 3px;
+            }
+            span:first-of-type {
+              color: #000;
+            }
+            span:last-of-type {
+              font-size: 12px;
+              border: 1px solid #1c92ff;
+              color: #1c92ff;
+              height: 20px;
+              line-height: 20px;
+              padding-left: 3px;
+              padding-right: 3px;
+              border-radius: 20px;
+              margin-left: 10px;
+            }
+          }
+         
+        }
+      }
+    }
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .van-tabs__line {
+    background-color: #1c92ff;
+  }
+  .van-uploader {
+    background: #ffffff;
+    padding: 10px 15px;
+    width: calc(100% - 30px);
+  }
+  .bottomTip {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px;
+    color: #aaaaaa;
+    background: #f5f5f5;
+    font-size: 14px;
+    line-height: 32px;
+  }
+  .marBottom {
+    margin-bottom: 10px;
+    background: #ffffff;
+  }
+  .label4 .van-field__label {
+    width: 60px;
+  }
+  .label7 .van-field__label {
+    width: 100px;
+  }
+  .label8 .van-field__label {
+    width: 116px;
+  }
+  .label9 .van-field__label {
+    width: 136px;
+  }
+  .van-popup {
+    width: 90%;
+    border-radius: 10px;
+    .content {
+      .imgDiv{
+        height: 36px;
+        background: rgba(0, 0, 0, 0.7);
+        img{
+          width: 70px;
+          height: 70px;
+        }
+      }
+      p {
+        text-align: right;
+        color: #aaaaaa;
+        margin-top: 15px;
+        margin-right: 15px;
+      }
+      ul {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0 15px;
+        li {
+          height: 30px;
+          padding: 0 10px;
+          font-size: 16px;
+          text-align: center;
+          line-height: 30px;
+          border-radius: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+          border: 1px solid rgba(28, 146, 255, 1);
+          background: rgba(28, 146, 255, 0.1);
+          &.active {
+            background: #1c92ff;
+            border: 1px solid #1c92ff;
+            color: #fff;
+          }
+        }
+      }
+      button {
+        width: 100%;
+        height: 49px;
+        border: none;
+        border-top: 1px solid #eeeeee;
+        background: #fff;
+        margin-top: 25px;
+        color: #1c92ff;
+        font-size: 16px;
+      }
+    }
+  }
+  .bottom {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: #fff;
+    display: flex;
+    justify-content: flex-start;
+    > li {
+      width: 33%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      color: #bbb;
+      img {
+        width: 20px;
+        height: 22px;
+      }
+    }
+  }
+  .van-popup.vanSheet {
+    width: 100%;
+    border-radius: inherit!important;
+    border-top-left-radius: 10px!important;
+    border-top-right-radius: 10px!important;
+    .van-action-sheet__header {
+      text-align: left;
+      padding-left: 20px;
+    }
+    ul {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      height: 84px;
+      li {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-left: 20px;
+        img {
+          width: 20px;
+          height: 20px;
+          margin-bottom: 5px;
+        }
+      }
+    }
+
+    p {
+      border-bottom: 1px solid #eee;
+      height: 50px;
+      line-height: 50px;
+      padding-left: 20px;
+    }
+  }
+}
+</style>

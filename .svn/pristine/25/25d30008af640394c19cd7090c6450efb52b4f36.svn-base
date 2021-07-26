@@ -1,0 +1,206 @@
+<template>
+    <div class="forgetPass">
+        <van-nav-bar
+            left-text="忘记密码"
+            left-arrow
+            @click-left="leftBack"
+        />
+
+        <p>
+            <span :class="yanzhengPhone?'active':''" @click="getNext('step2')">验证手机号码</span>
+            <img src="../images/xian.png" alt="">
+            <span :class="setPass?'active':''" @click="getNext('step1')">设置新密码</span>
+        </p>
+
+        <div class="inputs" v-show="yanzhengPhone">
+            <van-field
+                placeholder="请输入登录手机号码"
+                label="手机号"
+                left-icon="http://sc.xfd365.com/crmImages/phone.png"
+                input-align="right"
+                v-model="phone"
+            />
+            <van-field
+                placeholder="请输入验证码"
+                label="验证码"
+                left-icon="http://sc.xfd365.com/crmImages/code.png"
+                class="yanzhengma"
+                v-model="code"
+            />
+            <van-button slot="button" size="small" @click="sendCode" v-show="sendAuthCode">获取验证码</van-button>
+            <van-button slot="button" size="small" v-show="!sendAuthCode"><span class="auth_text_blue">{{auth_time}} </span>秒</van-button>
+            <button class="next" @click="getNext('step1')">下一步</button>
+        </div>
+
+        <div v-show="setPass">
+            <van-field
+                placeholder="请输入新密码"
+                label="新密码"
+                left-icon="http://sc.xfd365.com/crmImages/password.png"
+                input-align="right"
+                type="password"
+                v-model="password"
+            />
+            <van-field
+                placeholder="请再次输入新密码"
+                label="确认新密码"
+                left-icon="http://sc.xfd365.com/crmImages/password.png"
+                input-align="right"
+                type="password"
+                v-model="password2"
+            />
+            <button class="next" @click="forget">确定</button>
+        </div>
+
+    </div>
+</template>
+<script>
+export default {
+  name: "forgetPass",
+  data () {
+    return {
+        yanzhengPhone: true,
+        setPass: false,
+        phone: '',
+        code: '',
+        password: '',
+        password2: '',
+        sendAuthCode:true,
+        auth_time:0,
+    };
+  },
+  mounted(){
+      window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+      document.documentElement.scrollTop = 0;
+  },
+  methods:{
+      leftBack(){
+        this.$router.go(-1)
+      },
+      getNext(i){
+          if(i=='step2'){
+              this.yanzhengPhone = true
+              this.setPass = false
+          }
+          if(i=='step1'){
+              this.$api.checkCode({
+                  phone: this.phone,
+                  code: this.code
+              }).then(res=>{
+                  this.$toast(res.errmsg)
+                  if(res.errno === 0){
+                    this.yanzhengPhone = false
+                    this.setPass = true
+                  }
+              })
+          }
+      },
+
+      sendCode(){
+          this.$api.getCode({
+                phone: this.phone
+            }).then(res=>{
+                    this.$toast(res.errmsg)
+                if(res.errno === 0){
+                    this.sendAuthCode = false;
+                    this.auth_time = 60;
+                    var auth_timetimer =  setInterval(()=>{
+                        this.auth_time--;
+                        if(this.auth_time<=0){
+                            this.sendAuthCode = true;
+                            clearInterval(auth_timetimer);
+                        }
+                    }, 1000);
+                }
+            })
+      },
+      forget(){
+          this.$api.forgetPassword({
+              phone: this.phone,
+              password: this.password,
+              password2: this.password2,
+              code: this.code
+          }).then(res=>{
+              this.$toast(res.errmsg)
+          })
+      }
+  }
+}
+</script>
+<style lang="less">
+.forgetPass{
+  min-height: 100%;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+
+  >p{
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid #eeeeee;
+      background: #fff;
+      font-size: 14px;
+      img{
+          width: 20%;
+      }
+      span{
+          background: #dcdcdc;
+          color: #fff;
+          padding: 5px 10px;
+          border-radius: 20px;
+          border: 1px solid #bbbbbb;
+      }
+      span.active{
+          background: #e8f4ff;
+          border: 1px solid #1c92ff;
+          color: #1c92ff;
+      }
+  }
+  >.inputs{
+      position: relative;
+      >span{
+          position: absolute;
+          bottom: 13px;
+          right: 20px;
+          font-size: 14px;
+          color: #1c92ff
+      }
+      .yanzhengma{
+          input{
+              width: 60%;
+              text-align: right;
+          }
+      }
+          .van-button{
+              position: absolute;
+              right: 20px;
+              bottom: 8px;
+              border: none;
+          }
+  }
+
+  button.next{
+      width: 100%;
+        height: 50px;
+        display: block;
+        border: none;
+        background: #1c92ff;
+        color: #fff;
+        position: fixed;
+        bottom: 0
+  }
+}
+</style>

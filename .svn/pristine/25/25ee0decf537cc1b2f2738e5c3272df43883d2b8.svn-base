@@ -1,0 +1,94 @@
+<template>
+  <div class="mettingSignLists">
+    <van-nav-bar left-text="签到列表" left-arrow fixed @click-left="leftBack" />
+    <div v-if="signLists.length > 0">
+      <div class="list" v-for="(item,index) in signLists" :key="index">
+        <van-cell :title="item.reg_name" :value="item.reg_phone" />
+        <p class="time">报名时间：{{item.reg_time}}</p>
+        <p class="time">签到时间：{{item.sign_time}}</p>
+      </div>
+    </div>
+    <div v-else class="zanwu">
+      <img src="../../images/zanwu.png" alt />
+      <span>暂无内容</span>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "mettingSignLists",
+  data() {
+    return {
+      signLists: []
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0
+    this.$api.mettingSignLists({metting_id: this.$route.query.metting_id}).then(res => {
+      // console.log(res)
+        if (res.errno === 0) {
+          this.signLists = res.data;
+        }
+      });
+  },
+  methods: {
+    leftBack(){
+      this.$router.go(-1)
+    }
+  }
+};
+</script>
+<style lang="less">
+.mettingSignLists {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .list {
+    background: #ffffff;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eeeeee;
+    .van-cell {
+      padding: 10px 16px 5px 16px;
+      &::after {
+        border-bottom: none;
+      }
+    }
+    .time {
+      padding: 0 16px;
+      font-size: 13px;
+      line-height: 24px;
+      color: #666666;
+    }
+    &:last-child {
+      border-bottom: none;
+    }
+    img {
+      max-width: 100%;
+    }
+  }
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    img {
+      width: 80%;
+    }
+  }
+}
+</style>

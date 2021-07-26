@@ -1,0 +1,64 @@
+<template>
+    <div class="bottom">
+            <van-tabbar
+                active-color="#000"
+                inactive-color="#333"
+                router
+                fixed
+            >
+                <van-tabbar-item v-for="(item,index) of items" @click="$router.push(item.push)" :key="index">
+                    <span>{{item.name}}</span>
+                    <img
+                        slot="icon"
+                        slot-scope="props"
+                        :src="index === idx ?item.iconSelect: item.icon"
+                    >
+                </van-tabbar-item>
+            </van-tabbar>
+        </div>
+</template>
+<script>
+export default {
+  name: "bottom",
+  props: ["idx"],
+  data() {
+    return {
+      items: [
+        {
+          name: "CRM",
+          push: "/",
+          icon: require("../images/crm.png"),
+          iconSelect: require("../images/crm-h.png")
+        },
+        {
+          name: "签到",
+          push: "/work",
+          icon: require("../images/work.png"),
+          iconSelect: require("../images/work-h.png")
+        },
+        {
+          name: "消息",
+          push: "/msg",
+          icon: require("../images/msg.png"),
+          iconSelect: require("../images/msg-h.png")
+        },
+        {
+          name: "我的",
+          push: "/ucenter",
+          icon: require("../images/ucenter.png"),
+          iconSelect: require("../images/ucenter-h.png")
+        }
+      ]
+    };
+  },
+  methods: {}
+};
+</script>
+<style lang="less">
+.bottom {
+  height: 50px;
+  .van-tabbar {
+    box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.5);
+  }
+}
+</style>

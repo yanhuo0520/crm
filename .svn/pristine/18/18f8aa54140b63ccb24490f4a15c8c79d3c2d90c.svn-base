@@ -1,0 +1,65 @@
+{
+  "_from": "van",
+  "_id": "van@0.0.4",
+  "_inBundle": false,
+  "_integrity": "sha1-s7mZqUithPLJJeb4neqtTxpFfg0=",
+  "_location": "/van",
+  "_phantomChildren": {
+    "has-color": "0.1.7"
+  },
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "van",
+    "name": "van",
+    "escapedName": "van",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/van/-/van-0.0.4.tgz",
+  "_shasum": "b3b999a948ad84f2c925e6f89deaad4f1a457e0d",
+  "_spec": "van",
+  "_where": "C:\\Users\\信服达\\Desktop\\crm",
+  "author": {
+    "name": "Michael Bleigh"
+  },
+  "bin": {
+    "van": "bin/van"
+  },
+  "bugs": {
+    "url": "https://github.com/divshot/van/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "chalk": "^0.4.0",
+    "lodash": "^2.4.1"
+  },
+  "deprecated": false,
+  "description": "All of your processes can pile into the van.",
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "mocha": "~1.18.2"
+  },
+  "homepage": "https://github.com/divshot/van",
+  "keywords": [
+    "processes",
+    "interleaving",
+    "command-line"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "name": "van",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divshot/van.git"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "version": "0.0.4"
+}

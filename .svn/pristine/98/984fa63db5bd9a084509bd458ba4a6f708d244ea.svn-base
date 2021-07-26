@@ -1,0 +1,343 @@
+<template>
+    <div class="addMeeting">
+        <van-nav-bar
+            :left-text="huiyiTitle"
+            left-arrow
+            @click-left="$router.go(-1)"
+        />
+
+        <div class="marBottom">
+            <van-field
+                placeholder="请输入会议名称"
+                label="会议名称"
+                left-icon="http://sc.xfd365.com/crmImages/huiyi.png"
+                input-align="right"
+                v-model="metting_name"
+            />
+        </div>
+        <div class="marBottom">
+            <van-cell title="会议简介" icon="http://sc.xfd365.com/crmImages/genjinContent.png"></van-cell>
+            <van-field
+                rows="5"
+                autosize
+                type="textarea"
+                placeholder="请输入0-300字" 
+                maxlength="300"
+                v-model="intro"
+            />
+        </div>
+        <div class="marBottom">
+            <van-cell title="开始时间" is-link :value="startTime" @click="isStartTime=true" icon="http://sc.xfd365.com/crmImages/genjinTime.png" />
+            <van-cell title="结束时间" is-link :value="endTime" @click="isEndTime=true" icon="http://sc.xfd365.com/crmImages/genjinTime.png" />
+            <van-cell title="报名截止时间" is-link :value="jiezhiTime" @click="isJiezhiTime=true" icon="http://sc.xfd365.com/crmImages/genjinTime.png" />
+        </div>
+        <div class="marBottom">
+            <van-field
+                placeholder="请输入会议地址"
+                label="会议地址"
+                left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+                input-align="right"
+                v-model="place"
+            />
+        </div>
+        <!-- <div class="marBottom">
+            <van-cell title="上传会议宣传图" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+            <van-uploader
+            v-model="fileList"
+            multiple
+            :max-count="8"
+            :after-read="afterRead"
+            />
+        </div>
+        <div class="marBottom" style="margin-bottom:70px">
+            <van-cell title="上传头像" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+            <van-uploader
+            v-model="photoList"
+            multiple
+            :max-count="1"
+            :after-read="uploadPhoto"
+            />
+        </div> -->
+
+        <button class="save" @click="saveInfo">保存</button>
+
+        <van-overlay :show="isStartTime" @click="isStartTime = false" />
+        
+        <van-datetime-picker
+        v-model="currentDate"
+        type="datetime"
+        :min-date="minDate"
+        v-show="isStartTime"
+        @confirm="handleStartTime"
+        @cancel="isStartTime=false"
+        />
+
+        <van-overlay :show="isEndTime" @click="isEndTime = false" />
+        
+        <van-datetime-picker
+        v-model="currentDate"
+        type="datetime"
+        :min-date="minDate"
+        v-show="isEndTime"
+        @confirm="handleEndTime"
+        @cancel="isEndTime=false"
+        />
+
+        <van-overlay :show="isJiezhiTime" @click="isJiezhiTime = false" />
+        
+        <van-datetime-picker
+        v-model="currentDate"
+        type="datetime"
+        :min-date="minDate"
+        v-show="isJiezhiTime"
+        @confirm="handleJiezhiTime"
+        @cancel="isJiezhiTime=false"
+        />
+    </div>
+</template>
+<script>
+export default {
+  name: "addMeeting",
+  data () {
+    return {
+        fileList: [],
+        photoList:[],
+        photo: '',
+        pics: [],
+        isStartTime: false,
+        startTime:'请选择',
+        startDate: '',
+        isEndTime: false,
+        endTime:'请选择',
+        endDate: '',
+        isJiezhiTime: false,
+        jiezhiTime:'请选择',
+        jiezhiDate: '',
+        currentDate: new Date(),
+        minDate: new Date(1900, 1, 1),
+        metting_name: '',
+        intro: '',
+        place: '',
+        huiyiTitle: '添加会议',
+        metting_id: ''
+    };
+  },
+  mounted(){
+      var id = this.$route.query.metting_id
+      var that = this
+      that.metting_id = this.$route.query.metting_id
+      if(id){
+          this.huiyiTitle = '编辑会议'
+          this.$api.mettingDetail({metting_id: id}).then(res=>{
+              if(res.errno == 0){
+                that.metting_name = res.data.metting_name
+                that.intro = res.data.intro
+                that.startTime = res.data.start_time
+                that.endTime = res.data.end_time
+                that.jiezhiTime = res.data.stop_time
+                that.place = res.data.place
+                // that.pics = res.data.pictures
+                // var file = res.data.pictures
+                // if(file){
+                //     file = file.split("#");
+                //     var r = file.filter(function (s) {
+                //         return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+                //     });
+                //     r = r.map(item => ({url:item}))
+                //     this.fileList = JSON.parse(JSON.stringify(r))
+                // }
+                // if(res.data.photo){
+                //     that.photoList.push({
+                //         url : res.data.photo
+                //     })
+                // }
+              }
+          })
+      }
+  },
+  methods:{
+    afterRead(file) {
+      var formdata = new FormData();
+      //可以通过append()方法来追加数据
+      let token = localStorage.getItem("token");
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+          if (res.data.errno === 0) {
+            this.$toast("上传成功");
+            this.pics += res.data.data.url + "#";
+            
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    uploadPhoto(file){
+        var formdata = new FormData();
+      //可以通过append()方法来追加数据
+      let token = localStorage.getItem("token");
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      instance.post("http://crm.xfd365.com/user/base/uploadImg", formdata).then(res => {
+          if (res.data.errno === 0) {
+            this.$toast("上传成功");
+            this.photo = res.data.data.url;
+            this.photoList[0].url = res.data.data.url
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    // 开始时间
+    handleStartTime(value) {
+      var d = new Date(value);
+      this.startDate = d
+      if(this.startDate > this.jiezhiDate && this.jiezhiDate != ''){
+        this.$toast("开始时间大于截止时间")
+        return
+      }else if(this.startDate > this.endDate && this.endDate != ''){
+        this.$toast("开始时间大于结束时间")
+        return
+      }
+      var datetime = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes();
+      this.startTime = datetime;
+      this.isStartTime = false;
+    },
+    // 结束时间
+    handleEndTime(value) {
+      var d = new Date(value);
+      this.endDate = d;
+      if(this.endDate < this.startDate && this.startDate != ''){
+        this.$toast("结束时间小于开始时间")
+        return
+      }else if(this.endDate < this.jiezhiDate &&  this.jiezhiDate != ''){
+        this.$toast("结束时间小于截止时间")
+        return
+      }
+      var datetime = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes();
+      this.endTime = datetime;
+      this.isEndTime = false;
+    },
+    // 报名截止时间
+    handleJiezhiTime(value) {
+      var d = new Date(value);
+      this.jiezhiDate = d
+      if(this.jiezhiDate < this.startDate && this.startDate != ''){
+          this.$toast("截止时间小于开始时间")
+          return
+      }else if(this.jiezhiDate > this.endDate && this.endDate != ''){
+          this.$toast("截止时间大于结束时间")
+          return
+      }
+      var datetime = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes();
+      this.jiezhiTime = datetime;
+      this.isJiezhiTime = false;
+    },
+    saveInfo(){
+        var that = this
+        if(this.photoList){
+            var list = this.photoList
+            list.forEach(element => {
+             this.photo = element.url
+            });
+        }
+        if(!this.startDate){
+            this.$toast("请选择开始时间")
+           return
+        }
+        if(!this.endDate){
+            this.$toast("请选择结束时间")
+           return
+        }
+        if(!this.jiezhiDate){
+            this.$toast("请选择截止时间")
+           return
+        }
+        this.$api.mettingAdd({
+            metting_id: this.metting_id,
+            intro: this.intro,
+            metting_name: this.metting_name,
+            start_time: this.startTime,
+            end_time: this.endTime,
+            stop_time: this.jiezhiTime,
+            place: this.place,
+            // pictures: this.pics,
+            // photo: this.photo
+        }).then(res=>{
+            if(res.errno == 0){
+                this.$toast(res.errmsg)
+                this.$router.push({
+                    path: '/addSuccess',
+                    query:{
+                        metting_id: res.metting_id
+                    }
+                })
+            }else{
+                this.$toast(res.errmsg)
+            }
+        })
+    }
+  },
+  created(){
+    document.documentElement.scrollTop = 0
+    // let date = new Date();
+    // this.startDate = date
+    // this.endDate = date
+    // this.jiezhiDate = date
+    // this.startTime = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' '+ date.getHours() + ':' + date.getMinutes()
+    // this.endTime = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' '+ date.getHours() + ':' + date.getMinutes()
+    // this.jiezhiTime = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' '+ date.getHours() + ':' + date.getMinutes()
+  }
+}
+</script>
+<style lang="less">
+.addMeeting{
+    min-height: 100%;
+    background: #f5f5f5;
+    .van-nav-bar{
+        background: url(../../images/msgBg.jpg) no-repeat;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-size: 100% 50px;
+        .van-nav-bar__text{
+            color: #fff;
+        }
+        .van-icon{
+            color: #fff;
+        }
+    }
+
+    .van-picker {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        z-index: 999;
+    }
+    .van-uploader {
+        margin-left: 20px;
+        margin-top: 10px;
+    }
+
+    .marBottom{
+        margin-bottom: 10px;
+        background: #fff;
+    }
+    button.save{
+        width: 100%;
+        height: 50px;
+        display: block;
+        border: none;
+        background: #1c92ff;
+        color: #fff;
+        position: fixed;
+        bottom: 0
+    }
+}
+</style>

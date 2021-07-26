@@ -1,0 +1,474 @@
+<template>
+  <div class="tagCustomerSel">
+    <van-nav-bar 
+      left-text="选择客户" 
+      :right-text="rigthText"
+      left-arrow 
+      fixed
+      @click-left="leftBack"
+      @click-right="sureSelect"
+    />
+
+    <div class="searchCont">
+      <input type="text" v-model="searchInput" placeholder="请输入客户姓名或手机号" @input="changeInput()" />
+      <img src="../images/searchContact.png" alt @click="searchAll" />
+    </div>
+
+    <img src="../images/showBank.png" alt="" class="bankSel" v-if='region == "全部" && regionLoad' @click="regionShow = true" />
+
+    <van-popup v-model="regionShow" position="left" :duration="0.3" :style="{ height: '100%',width: '70%' }">
+      <ul v-if="secondBank != ''" class="secondBankUl">
+        <li v-for="(item, index) in secondBank" :class="{'active': index == activeIndex}" :key="index" @click="secondBankSel(index, item)">{{item}}</li>
+      </ul>
+    </van-popup>
+    <img src="../images/hideBank.png" alt="" class="bankHide" v-if='region == "全部" && regionShow' @click="regionShow = false" />
+
+
+    <div v-if="userData != ''">
+      <van-index-bar :index-list="indexList" :sticky-offset-top="stickyOffsetTop">
+        <div v-for="(item, index) in userData" :key="index" class="contentUl">
+          <van-index-anchor :index="index">{{index}}</van-index-anchor>
+          <div class="content" v-for="(item1, index1) in item" :key="index1">
+            <van-checkbox
+              :name="item1.customer_id"
+              v-model="item1.tag"
+              :disabled="item1.tag===1"
+              :class="item1.serverName?'stationA':'stationB'"
+              @click="checkSel(item1.tag, item1.customer_id, item1.tagtype)"
+            >
+              <p :class="item1.serverName?'stationA':'stationB'">{{item1.customerName}} | {{item1.phones}}</p>
+              <p class="station" v-if="item1.serverName">{{item1.serverName}}</p>
+            </van-checkbox>
+          </div>
+        </div>
+        
+        <!-- <van-checkbox-group v-model="result" @change="changeSel">
+          <div v-for="(item, index) in userData" :key="index">
+            <van-index-anchor :index="index">{{index}}</van-index-anchor>
+            <div class="content" v-for="(item1, index1) in item" :key="index1">
+              <van-checkbox
+                :name="item1.customer_id + '-' + item1.tagtype"
+                v-model="item1.tag"
+                :disabled="item1.tag===1"
+                :class="item1.serverName?'stationA':'stationB'"
+              >
+                <p :class="item1.serverName?'stationA':'stationB'">{{item1.customerName}} | {{item1.phones}}</p>
+                <p class="station" v-if="item1.serverName">{{item1.serverName}}</p>
+              </van-checkbox>
+            </div>
+          </div>
+        </van-checkbox-group> -->
+      </van-index-bar>
+    </div>
+              <!-- :v-model="item1.customer_tag_id.split(',').indexOf(tag_id)" -->
+    <div v-else-if="userData == '' && !loading && searchInput" class="zanwu">
+      <span>没有<span class="tip" v-if="searchInput">"{{searchInput}}"</span>相关结果</span>
+    </div>
+    <div v-else-if="userData == '' && !loading && !searchInput" class="zanwu">
+      <span>暂无内容</span>
+    </div>
+
+    <van-loading v-if="loading" size="24px">加载中...</van-loading>
+  </div>
+</template>
+<script>
+export default {
+  name: "tagCustomerSel",
+  data() {
+    return {
+      rigthText: "确定",
+      customer_type: '',
+      tag_id: '',
+      tag: '',
+      loading: 1,
+      searchInput: "",
+      stickyOffsetTop: 50,
+      indexList: [],
+      userData: [],
+      customerIdsArray: [], // 建行客户 id 以逗号相隔
+      customerIds: '',
+      stationIdsArray: [], // 其他新增客户 id 以逗号相隔
+      stationIds: '',
+      selNum: 0,
+
+      result: [],
+      region: '',
+      regionLoad: false,
+      regionShow: false,
+      secondBanksel: '',
+      activeIndex: 0,
+      secondBank: []
+    };
+  },
+  mounted() {
+    window.leftBack = this.leftBack // Android原生返回按钮执行leftBack()方法
+    document.documentElement.scrollTop = 0;
+    let region = localStorage.getItem("region")
+    this.region = region
+    
+    var customer_type = this.$route.query.customer_type
+    this.customer_type = customer_type
+
+    var tag_id = this.$route.query.tag_id;
+    var tag = this.$route.query.tag;
+    this.tag_id = tag_id
+    this.tag = tag
+    if(this.region == "全部"){
+      this.regionLoad = true
+      this.getsecondBank()
+    }else{
+      this.getList();
+    }
+
+  },
+  methods: {
+    leftBack(){
+      localStorage.removeItem("selectUser") // 给客户选择标签
+      localStorage.removeItem("customerIds") 
+      localStorage.removeItem("stationIds")
+      this.$router.go('-1')
+    },
+    getsecondBank(){
+      this.$api.secondBank().then(res => {
+        if (res.errno === 0){
+          if(res.data){
+            this.secondBanksel = res.data[0]
+            this.getList();
+          }
+          this.secondBank = res.data
+        }
+      })
+    },
+    secondBankSel(index, item){
+      // console.log(index + '--' + item)
+      this.regionShow = false
+      this.activeIndex = index
+      this.secondBanksel = item
+      // 清空数据，重新加载
+      this.loading = 1
+      this.searchInput = ''
+      this.indexList = []
+      this.userData = []
+      this.getList()
+    },
+    changeSel(){
+      let that = this;
+      that.selNum = this.result.length
+      if(that.selNum > 0){
+        that.rigthText = '确定('+ that.selNum  +')';
+      }else{
+        that.rigthText = '确定';
+      }
+
+      let customerIds =  "";
+      let stationIds = "";
+      that.result.forEach(ele=>{
+        if(ele.indexOf("station") > -1){
+          stationIds += ele.slice(0, ele.indexOf("station")-1) + ','
+        }else if(ele.indexOf("customer") > -1){
+          customerIds += ele.slice(0, ele.indexOf("customer")-1) + ','
+        }
+      })
+      if(stationIds.lastIndexOf(',') > -1){
+        that.stationIds = stationIds.substr(0,stationIds.length-1)
+      }else{
+        that.stationIds = stationIds
+      }
+      if(customerIds.lastIndexOf(',') > -1){
+        that.customerIds = customerIds.substr(0,customerIds.length-1)
+      }else{
+        that.customerIds = customerIds
+      }
+    },
+    checkSel(tag, customer_id, tagtype){
+      let that = this
+      if(tag !== 1 ){ // 标签不存在时触发点击操作
+        if(tagtype == "customer"){ // 建行客户
+          let index = that.customerIdsArray.indexOf(customer_id)
+          if(index == -1){
+            that.customerIdsArray.push(customer_id)
+          }else{
+            that.customerIdsArray.splice(index, 1);
+          }
+        }else{ // 其他新增客户
+          let index = that.stationIdsArray.indexOf(customer_id)
+          if(index == -1){
+            that.stationIdsArray.push(customer_id)
+          }else{
+            that.stationIdsArray.splice(index, 1);
+          }
+        }
+        let length1 = (that.customerIdsArray.length > 0) ? that.customerIdsArray.length : 0
+        let length2 = (that.stationIdsArray.length > 0) ? that.stationIdsArray.length : 0
+        let selNum = length1 + length2;
+        that.selNum = selNum
+        if(selNum > 0){
+          that.rigthText = '确定('+ selNum  +')';
+        }else{
+          that.rigthText = '确定';
+        }
+        
+        let customerIds =  "";
+        that.customerIdsArray.forEach(ele=>{
+          customerIds += ele + ','
+        })
+        if(customerIds.lastIndexOf(',') > -1){
+          customerIds = customerIds.substr(0,customerIds.length-1)
+        }
+        that.customerIds = customerIds;
+
+        let stationIds = "";
+        that.stationIdsArray.forEach(ele=>{
+          stationIds += ele + ','
+        })
+        if(stationIds.lastIndexOf(',') > -1){
+          stationIds = stationIds.substr(0,stationIds.length-1)
+        }
+        that.stationIds = stationIds;
+      }
+      
+    },
+    changeInput(){
+      this.selNum = 0
+      this.rigthText = '确定';
+      this.customerIdsArray = []
+      this.customerIds = ''
+      this.stationIdsArray = []
+      this.stationIds = ''
+      this.getList();
+    },
+    searchAll() {
+      // this.selNum = 0
+      // this.rigthText = '确定';
+      // this.customerIdsArray = []
+      // this.customerIds = ''
+      // this.stationIdsArray = []
+      // this.stationIds = ''
+      // this.getList();
+    },
+    getList() {
+      let that = this;
+      var data={}
+        data.type = that.customer_type
+        data.stype = 1 // 可搜索关联客户
+        data.customer_tag_id = that.tag_id
+        data.where = that.searchInput
+        data.secondBank = that.secondBanksel
+      this.$api.tagCustomerLists(data).then(res => {
+          if (res.errno === 0) {
+            that.loading = 0;
+            if (res.data) {
+              that.indexList = Object.keys(res.data);
+              that.userData = res.data;
+            }else{
+              that.indexList = []
+              that.userData = []
+            }
+          }else{
+            that.indexList = []
+            that.userData = []
+          }
+        });
+      
+    },
+    sureSelect(){
+      let that = this
+      if(that.selNum == 0){
+        this.$toast("请选择客户")
+        return
+      }
+      
+      var data = {}
+        data.customer_tag_id = that.tag_id
+        data.customer_ids = that.customerIds
+        data.station_ids = that.stationIds
+        console.log(data)
+        // return
+        this.$api.tagUserAdd(data).then(res => {
+          if (res.errno === 0){
+            localStorage.setItem("selectUser", 'selectUser') // 给客户选择标签
+            localStorage.setItem("customerIds", that.customerIds) // 选择建行客户ID
+            localStorage.setItem("stationIds", that.stationIds) // 选择新增客户ID
+            this.$router.push({
+              path: '/tagEdit',
+              query: {
+                customer_type: that.customer_type,
+                tag: that.tag,
+                tag_id: that.tag_id
+              }
+            })
+          }else{
+            this.$toast(res.errmsg)
+          }
+        })
+      // this.$router.go('-1')
+    }
+  }
+};
+</script>
+<style lang="less">
+.tagCustomerSel {
+  min-height: calc(100% - 50px);
+  padding-top: 50px;
+  background: #f5f5f5;
+  .van-nav-bar {
+    z-index: 2;
+    background: url(../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .searchCont {
+    display: flex;
+    position: relative;
+    padding: 10px 15px;
+    input {
+      height: 35px;
+      border: none;
+      width: 100%;
+      font-size: 14px;
+      padding: 0 40px 0 15px;
+      border-radius: 30px;
+      background: #ffffff;
+    }
+    input:-ms-input-placeholder {
+      color: #aaaaaa;
+    }
+    ::-webkit-input-placeholder {
+      color: #aaaaaa;
+    }
+    img {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      width: 16px;
+      padding: 10px 15px;
+    }
+  }
+  .bankSel{
+    position: fixed;
+    left: 0;
+    top: 220px;
+    z-index: 2;
+    width: 20px;
+  }
+  .bankHide{
+    position: fixed;
+    top: 200px;
+    left: 70%;
+    width: 22px;
+    z-index:9999;
+    animation:mymove 0.35s;
+  }
+  @keyframes mymove{
+    from {left: 0;}
+    to {left:70%;}
+  }
+  .secondBankUl{
+    li{
+      color: #444444;
+      font-size: 14px;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eeeeee;
+      &.active{
+        color: #1C92FF;
+      }
+      &:last-child{
+        border: none;
+      }
+    }
+  }
+  .van-index-bar__index{
+    line-height: 18px;
+    color: #999999;
+  }
+  .van-index-bar__index--active,
+  .van-index-anchor,
+  .van-index-anchor--sticky{
+    color: #1C92FF;
+  }
+  .van-index-bar__sidebar{
+    top: calc(50% + 40px)
+  }
+  .contentUl{
+    .content{
+      &:nth-of-type(2){
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+      &:last-child{
+        border-bottom: none;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+      }
+    }
+  }
+  .content {
+    margin: 0 15px;
+    padding: 0 15px;
+    min-height: 50px;
+    background: #fff;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    p {
+      &.stationA {
+        padding-top: 6px;
+      }
+      &.stationB {
+        padding-top: 16px;
+      }
+      &.station {
+        font-size: 12px;
+        color: #888888;
+        line-height: 16px;
+      }
+    }
+    .stationA{
+      &.van-checkbox{
+        padding-bottom: 8px;
+      }
+      .van-checkbox__icon {
+        margin-top: 6px;
+      }
+      &.van-checkbox--disabled{
+        .station{
+          color: #c8c9cc;
+        }
+      }
+    }
+    .stationB {
+      &.van-checkbox{
+        padding-bottom: 15px;
+      }
+      .van-checkbox__icon {
+        margin-top: 15px;
+      }
+    }
+  }
+
+  .zanwu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 10%;
+    span.tip {
+      color: red;
+    }
+    img {
+      width: 80%;
+    }
+  }
+  .van-loading {
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+</style>

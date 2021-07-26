@@ -1,0 +1,1023 @@
+<template>
+  <div class="siteStatiseAdd">
+    <van-nav-bar left-text="站点统计" left-arrow @click-left="$router.go(-1)" />
+    <ul class="navTop">
+      <li
+        v-for="(item, index) in title"
+        :key="index"
+        :class="{'active': item.isActive}"
+      >{{item.name}}</li>
+    </ul>
+    <div class="nav-tab nav-tab1" v-if="tab1Show" title="基本情况">
+      <div class="marBottom">
+        <van-field
+          placeholder="请输入站长姓名"
+          label="站长姓名"
+          left-icon="http://sc.xfd365.com/crmImages/name.png"
+          input-align="right"
+          v-model="tab1Name"
+        />
+        <van-field
+          placeholder="请输入签约手机号"
+          type="tel"
+          label="签约手机号"
+          left-icon="http://sc.xfd365.com/crmImages/phone.png"
+          input-align="right"
+          v-model="tab1Mobile"
+        />
+        <van-field
+          placeholder="请输入身份证号"
+          type="tel"
+          label="身份证号"
+          left-icon="http://sc.xfd365.com/crmImages/card.png"
+          input-align="right"
+          v-model="tab1Card"
+        />
+      </div>
+      <div class="marBottom">
+        <van-field
+          placeholder="请输入民族"
+          label="民族"
+          left-icon="http://sc.xfd365.com/crmImages/nation.png"
+          input-align="right"
+          v-model="tab1Nation"
+        />
+        <van-field
+          placeholder="请选择性别"
+          label="性别"
+          is-link
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/sex.png"
+          input-align="right"
+          v-model="tab1Sex"
+          @click="isSex=true"
+        />
+        <van-field
+          placeholder="请选择出生年月"
+          label="出生年月"
+          is-link
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/birthday.png"
+          input-align="right"
+          v-model="tab1Birthday"
+          @click="isBirth=true"
+        />
+        <van-field
+          placeholder="请选择教育程度"
+          label="教育程度"
+          is-link
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/education.png"
+          input-align="right"
+          v-model="tab1Educatione"
+          @click="isEducate=true"
+        />
+      </div>
+      <div class="marBottom">
+        <van-field
+          placeholder="请输入微信号"
+          label="微信号"
+          left-icon="http://sc.xfd365.com/crmImages/wechat.png"
+          input-align="right"
+          v-model="tab1Wechat"
+        />
+        <van-field
+          placeholder="请输入住宅电话"
+          type="tel"
+          label="住宅电话"
+          left-icon="http://sc.xfd365.com/crmImages/zuoji.png"
+          input-align="right"
+          v-model="tab1Telphone"
+        />
+        <van-field
+          placeholder="请输入邮政编码"
+          type="tel"
+          label="邮政编码"
+          left-icon="http://sc.xfd365.com/crmImages/youbian.png"
+          input-align="right"
+          v-model="tab1Youbian"
+        />
+        <van-field
+          placeholder="请选择邮寄地址"
+          label="邮寄地址"
+          is-link
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+          input-align="right"
+          v-model="tab1Region"
+          @click="isRegion1=true"
+        />
+        <van-field placeholder="请输入详细邮寄地址" input-align="right" v-model="tab1Addtail" />
+      </div>
+      <div class="marBottom">
+        <van-field
+          placeholder="请选择婚姻状况"
+          label="婚姻状况"
+          is-link
+          readonly
+          left-icon="http://sc.xfd365.com/crmImages/marriage.png"
+          input-align="right"
+          v-model="tab1Marriage"
+          @click="isMarriage=true"
+        />
+        <van-field
+          placeholder="请输入配偶姓名"
+          label="配偶姓名"
+          left-icon="http://sc.xfd365.com/crmImages/name.png"
+          input-align="right"
+          v-model="tab1SpouseName"
+        />
+        <van-field
+          placeholder="请输入配偶联系方式"
+          type="tel"
+          label="配偶联系方式"
+          left-icon="http://sc.xfd365.com/crmImages/phone.png"
+          input-align="right"
+          v-model="tab1SpousMobile"
+        />
+        <van-field
+          placeholder="请输入配偶身份证号"
+          type="tel"
+          label="配偶身份证号"
+          left-icon="http://sc.xfd365.com/crmImages/card.png"
+          input-align="right"
+          v-model="tab1SpousCard"
+        />
+        <div class="bottomTip">
+          <p>填写人:{{userName}}</p>
+          <p>填写日期:{{currentDateNow}}</p>
+        </div>
+        <button class="save" @click="saveTab1">保存并转至下一步</button>
+      </div>
+    </div>
+
+    <div class="nav-tab nav-tab2" v-if="tab2Show" title="站点情况">
+      <van-field
+        placeholder="请输入营业执照名称"
+        label="营业执照名称"
+        left-icon="http://sc.xfd365.com/crmImages/business.png"
+        input-align="right"
+        v-model="tab2BusName"
+      />
+      <van-cell title="上传营业执照" icon="http://sc.xfd365.com/crmImages/genjinFujian.png" is-link></van-cell>
+      <van-uploader v-model="tab2BusPicList" multiple :max-count="8" :after-read="afterRead" />
+      <div class="bottomTip">
+        <p>填写人:{{userName}}</p>
+        <p>填写日期:{{currentDateNow}}</p>
+      </div>
+      <button class="save" @click="saveTab2">保存并转至下一步</button>
+    </div>
+
+    <div class="nav-tab nav-tab3" v-if="tab3Show" title="经营情况">
+      <van-field
+        placeholder="请选择经营主体"
+        label="经营主体"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/busentity.png"
+        input-align="right"
+        v-model="tab3Busentity"
+        @click="isBusentity=true"
+      />
+      <van-field
+        placeholder="请输入经营场所名称"
+        label="经营场所名称"
+        left-icon="http://sc.xfd365.com/crmImages/busname.png"
+        input-align="right"
+        v-model="tab3BusName"
+      />
+      <van-field
+        placeholder="请输入经营面积"
+        label="经营面积"
+        left-icon="http://sc.xfd365.com/crmImages/busarea.png"
+        input-align="right"
+        v-model="tab3BusArea"
+      />
+      <van-field
+        placeholder="请选择年交易额"
+        label="年交易额"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/busmoney.png"
+        input-align="right"
+        v-model="tab3BusMoney"
+        @click="isBusMoney=true"
+      />
+      <van-field
+        placeholder="请选择从业人数"
+        label="从业人数"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/busnumber.png"
+        input-align="right"
+        v-model="tab3BusNumber"
+        @click="isBusNumber=true"
+      />
+      <van-field
+        placeholder="请选择经营地址"
+        label="经营地址"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/dingwei.png"
+        input-align="right"
+        v-model="tab3BusRegion"
+        @click="isRegion3=true"
+      />
+      <van-field placeholder="请输入经营详细地址" input-align="right" v-model="tab3BusRegDetail" />
+      <div class="bottomTip">
+        <p>填写人:{{userName}}</p>
+        <p>填写日期:{{currentDateNow}}</p>
+      </div>
+      <button class="save" @click="saveTab3">保存并转至下一步</button>
+    </div>
+
+    <div class="nav-tab nav-tab4" v-if="tab4Show" title="使用情况">
+      <van-field
+        placeholder="请选择持有数量"
+        label="持有信用卡数量"
+        class="label7"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/cardnumber.png"
+        input-align="right"
+        v-model="tab4CardNumber"
+        @click="isCardNumber=true"
+      />
+      <van-field
+        placeholder="请选择贷款情况"
+        label="贷款情况"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/loan.png"
+        input-align="right"
+        v-model="tab4Loan"
+        @click="isLoan=true"
+      />
+      <van-field
+        placeholder="请选择常用收款方式"
+        label="常用收款方式"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/payment.png"
+        input-align="right"
+        v-model="tab4Payment"
+        @click="isPayment=true"
+      />
+      <van-field
+        placeholder="请选择银行数量"
+        label="站点合作银行数量"
+        class="label8"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/hebanknum.png"
+        input-align="right"
+        v-model="tab4BankNum"
+        @click="isBankNum=true"
+      />
+      <van-field
+        placeholder="请选择银行名称"
+        label="合作银行名称"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/firstBank.png"
+        input-align="right"
+        v-model="tab4BankName"
+        @click="isBankName=true"
+      />
+      <van-field
+        placeholder="请选择网点数量"
+        label="1公里内银行网点数量"
+        class="label9"
+        is-link
+        readonly
+        left-icon="http://sc.xfd365.com/crmImages/nearybank.png"
+        input-align="right"
+        v-model="tab4NearNum"
+        @click="isNearNum=true"
+      />
+      <div class="bottomTip">
+        <p>填写人:{{userName}}</p>
+        <p>填写日期:{{currentDateNow}}</p>
+      </div>
+      <button class="save" @click="saveTab4">完成</button>
+    </div>
+
+    <!-- 选择性别 -->
+    <van-action-sheet class="sexSheet" v-model="isSex" title="请选择性别" :round="isRound">
+      <ul>
+        <li v-for="(item,index) in sexs" :key="index" @click="selectSex(index)">
+          <img :src="item" alt />
+        </li>
+      </ul>
+    </van-action-sheet>
+
+    <!-- 选择出生日期 -->
+    <van-popup v-model="isBirth" position="bottom" style="height: 264px">
+      <van-datetime-picker
+        v-model="currentDate"
+        type="date"
+        :min-date="minDate"
+        v-show="isBirth"
+        @confirm="handleTime"
+        @cancel="isBirth=false"
+      />
+    </van-popup>
+
+    <!-- 教育程度 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isEducate"
+      title="教育程度"
+      :actions="educateType"
+      @select="onSelectEducate"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 邮寄地址 -->
+    <div class="provin" v-show="isRegion1">
+      <van-area :area-list="areaList" @cancel="hideProv" @confirm="confirmRegion1" />
+      <van-overlay :show="isRegion1" @click="isRegion1 = false" />
+    </div>
+
+    <!-- 婚姻状况 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isMarriage"
+      title="婚姻状况"
+      :actions="marriageType"
+      @select="onSelectMarriage"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 经营主体 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isBusentity"
+      title="经营主体"
+      :actions="busentityType"
+      @select="onSelectBusentity"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 年交易额 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isBusMoney"
+      title="年交易额"
+      :actions="busMoneyType"
+      @select="onSelectBusMoney"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 从业人数 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isBusNumber"
+      title="从业人数"
+      :actions="busNumberType"
+      @select="onSelectBusNumber"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 经营地址 -->
+    <div class="provin" v-show="isRegion3">
+      <van-area :area-list="areaList" @cancel="hideProv" @confirm="confirmRegion3" />
+      <van-overlay :show="isRegion3" @click="isRegion3 = false" />
+    </div>
+
+    <!-- 持有信用卡数量 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isCardNumber"
+      title="持有信用卡数量"
+      :actions="cardNumberType"
+      @select="onSelectCardNumber"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 贷款情况 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isLoan"
+      title="贷款情况"
+      :actions="loanType"
+      @select="onSelectLoan"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 常用收款方式 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isPayment"
+      title="常用收款方式"
+      :actions="paymentType"
+      @select="onSelectPayment"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 站点合作银行数量 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isBankNum"
+      title="站点合作银行数量"
+      :actions="bankNumType"
+      @select="onSelectBankNum"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 合作银行名称 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isBankName"
+      title="合作银行名称"
+      :actions="bankNameType"
+      @select="onSelectBankName"
+      :round="isRound"
+    ></van-action-sheet>
+
+    <!-- 1公里内银行网点数量 -->
+    <van-action-sheet
+      class="listSheet"
+      v-model="isNearNum"
+      title="1公里内银行网点数量"
+      :actions="nearNumType"
+      @select="onSelectNearNum"
+      :round="isRound"
+    ></van-action-sheet>
+  </div>
+</template>
+<script>
+import AreaList from "../../styles/area";
+export default {
+  name: "siteStatiseAdd",
+  data() {
+    return {
+      title: [
+        {
+          name: "基本情况",
+          isActive: true
+        },
+        {
+          name: "站点情况",
+          isActive: false
+        },
+        {
+          name: "经营情况",
+          isActive: false
+        },
+        {
+          name: "使用情况",
+          isActive: false
+        }
+      ],
+      tab1Show: true,
+      tab1Name: "",
+      tab1Mobile: "",
+      tab1Card: "",
+      tab1Nation: "",
+      isRound: false,
+      isSex: false,
+      sexs: [
+        require("../../images/male.png"),
+        require("../../images/female.png")
+      ],
+      tab1Sex: "",
+      currentDate: new Date(),
+      minDate: new Date(1900, 1, 1),
+      isBirth: false,
+      tab1Birthday: "",
+      isEducate: false,
+      educateType: [
+        { name: "本科及以上" },
+        { name: "大专" },
+        { name: "中专或高中" },
+        { name: "初中及以下" }
+      ],
+      tab1Educatione: "",
+      tab1Wechat: "",
+      tab1Telphone: "",
+      tab1Youbian: "",
+      isRegion1: false,
+      areaList: AreaList,
+      tab1Region: "",
+      tab1Addtail: "",
+      tab1Address: "",
+      isMarriage: false,
+      marriageType: [{ name: "已婚" }, { name: "未婚" }, { name: "其他" }],
+      tab1Marriage: "",
+      tab1SpouseName: "",
+      tab1SpousMobile: "",
+      tab1SpousCard: "",
+
+      tab2Show: false,
+      tab2BusName: "",
+      tab2BusPicList: [],
+      tab2BusPics: "",
+
+      tab3Show: false,
+      isBusentity: false,
+      busentityType: [
+        { name: "商超" },
+        { name: "农资店" },
+        { name: "种植养殖户" },
+        { name: "村委会" },
+        { name: "其他 门诊" }
+      ],
+      tab3Busentity: "",
+      tab3BusName: "",
+      tab3BusArea: "",
+      isBusMoney: false,
+      busMoneyType: [
+        { name: "100万以上" },
+        { name: "50-100万" },
+        { name: "30-50万" },
+        { name: "30万以下" }
+      ],
+      tab3BusMoney: "",
+      isBusNumber: false,
+      busNumberType: [
+        { name: "10人及以上" },
+        { name: "6-9人" },
+        { name: "3-5人" },
+        { name: "1-2人" },
+        { name: "兼职" }
+      ],
+      tab3BusNumber: "",
+      isRegion3: false,
+      tab3BusRegion: "",
+      tab3BusRegDetail: "",
+      tab3BusAddress: "",
+
+      tab4Show: false,
+      isCardNumber: false,
+      cardNumberType: [
+        { name: "5张以上" },
+        { name: "5张" },
+        { name: "4张" },
+        { name: "3张" },
+        { name: "2张" },
+        { name: "1张" },
+        { name: "无" }
+      ],
+      tab4CardNumber: "",
+      isLoan: false,
+      loanType: [
+        { name: "生产经营贷款" },
+        { name: "住房按揭贷款" },
+        { name: "车贷" },
+        { name: "其他" }
+      ],
+      tab4Loan: "",
+      isPayment: false,
+      paymentType: [
+        { name: "微信" },
+        { name: "支付宝" },
+        { name: "云闪付" },
+        { name: "银行" }
+      ],
+      tab4Payment: "",
+      isBankNum: false,
+      bankNumType: [
+        { name: "1家" },
+        { name: "2家" },
+        { name: "3家" },
+        { name: "4家及以上" }
+      ],
+      tab4BankNum: "",
+      isBankName: false,
+      bankNameType: [
+        { name: "中原银行" },
+        { name: "农商行" },
+        { name: "中国银行" },
+        { name: "农业银行" },
+        { name: "邮储银行" },
+        { name: "其他" }
+      ],
+      tab4BankName: "",
+      isNearNum: false,
+      nearNumType: [
+        { name: "1家" },
+        { name: "2家" },
+        { name: "3家" },
+        { name: "4家及以上" }
+      ],
+      tab4NearNum: "",
+
+      site_id: "",
+      user_id: "",
+      userName: "",
+      currentDateNow: ""
+    };
+  },
+  mounted() {
+    document.documentElement.scrollTop = 0;
+    this.userName = localStorage.getItem("userName");
+    this.user_id = localStorage.getItem("userId");
+    this.currentDateNow = this.currentDate.getFullYear() + "." + (this.currentDate.getMonth() + 1) + "." + this.currentDate.getDate();
+    var id = this.$route.query.id;
+    if(this.$route.query.id){
+      this.site_id = id
+      this.$api.siteStatiseDetail({ site_id: id }).then(res=>{
+        if (res.errno === 0) {
+          if(res.data){
+            this.tab1Name = res.data.site_name
+            this.tab1Mobile = res.data.sign_phone
+            this.tab1Card = res.data.idcard
+            this.tab1Nation = res.data.nation
+            this.tab1Sex = res.data.sex
+            this.tab1Birthday = res.data.date_of_birth
+            this.tab1Educatione = res.data.edu
+            this.tab1Wechat = res.data.wx_mobile
+            this.tab1Telphone = res.data.address_phone
+            this.tab1Youbian = res.data.postal_code
+            let you_address = res.data.you_address
+            if(you_address){
+              if(you_address.indexOf('/') == -1){ // 不包含/ 
+                this.tab1Addtail = you_address
+              }else{
+                let addArr = you_address.substr(0, you_address.length).split("/")
+                this.tab1Addtail = addArr[addArr.length-1]
+                this.tab1Region = you_address.substr(0, (you_address.length - this.tab1Addtail.length))
+              }
+            }
+            this.tab1Marriage = res.data.marital
+            this.tab1SpouseName = res.data.spouse_name
+            this.tab1SpousMobile = res.data.spouse_phone
+            this.tab1SpousCard = res.data.spouse_idcard
+            this.tab2BusName = res.data.business_name
+            this.tab2BusPics = res.data.business_pic
+            if (this.tab2BusPics) {
+              var pics = this.tab2BusPics;
+              pics = pics.split("#");
+              var r = pics.filter(function(s) {
+                return s && s.trim(); // 注：IE9(不包含IE9)以下的版本没有trim()方法
+              });
+              r = r.map(item => ({ url: item }));
+              this.tab2BusPicList = JSON.parse(JSON.stringify(r));
+            } else {
+              this.tab2BusPics = ''
+              this.tab2BusPicList = [];
+            }
+            this.tab3Busentity = res.data.business
+            this.tab3BusName = res.data.business_site_name
+            this.tab3BusArea = res.data.business_size
+            this.tab3BusMoney = res.data.year_amount
+            this.tab3BusNumber = res.data.the_num
+            let business_address = res.data.business_address
+            if(business_address){
+              if(business_address.indexOf('/') == -1){ // 不包含/ 
+                this.tab3BusRegDetail = business_address
+              }else{
+                let addArr = business_address.substr(0, business_address.length).split("/")
+                this.tab3BusRegDetail = addArr[addArr.length-1]
+                this.tab3BusRegion = business_address.substr(0, (business_address.length - this.tab1Addtail.length))
+              }
+            }
+
+            this.tab4CardNumber = res.data.hold_card
+            this.tab4Loan = res.data.loans
+            this.tab4Payment = res.data.payment_term
+            this.tab4BankNum = res.data.site_he_bank
+            this.tab4BankName = res.data.site_he_bankname
+            this.tab4NearNum = res.data.one_bane
+          }
+        }
+      })
+    }
+  },
+  methods: {
+    selectSex(index) {
+      this.isSex = false;
+      if (index == 0) {
+        this.tab1Sex = "男";
+      } else if (index == 1) {
+        this.tab1Sex = "女";
+      }
+    },
+    handleTime(value) {
+      var d = new Date(value);
+      var datetime =
+        d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+      this.tab1Birthday = datetime;
+      this.isBirth = false;
+    },
+    onSelectEducate(item) {
+      // 教育程度
+      this.tab1Educatione = item.name;
+      this.isEducate = false;
+    },
+    onSelectMarriage(item) {
+      // 婚姻状况
+      this.tab1Marriage = item.name;
+      this.isMarriage = false;
+    },
+    onSelectBusentity(item) {
+      // 经营主体
+      this.tab3Busentity = item.name;
+      this.isBusentity = false;
+    },
+    onSelectBusMoney(item) {
+      // 年交易额
+      this.tab3BusMoney = item.name;
+      this.isBusMoney = false;
+    },
+    onSelectBusNumber(item) {
+      // 从业人数
+      this.tab3BusNumber = item.name;
+      this.isBusNumber = false;
+    },
+    onSelectCardNumber(item) {
+      // 持有信用卡数量
+      this.tab4CardNumber = item.name;
+      this.isCardNumber = false;
+    },
+    onSelectLoan(item) {
+      // 贷款情况
+      this.tab4Loan = item.name;
+      this.isLoan = false;
+    },
+    onSelectPayment(item) {
+      // 常用收款方式
+      this.tab4Payment = item.name;
+      this.isPayment = false;
+    },
+    onSelectBankNum(item) {
+      // 站点合作银行数量
+      this.tab4BankNum = item.name;
+      this.isBankNum = false;
+    },
+    onSelectBankName(item) {
+      // 合作银行名称
+      this.tab4BankName = item.name;
+      this.isBankName = false;
+    },
+    onSelectNearNum(item) {
+      // 1公里内银行网点数量
+      this.tab4NearNum = item.name;
+      this.isNearNum = false;
+    },
+    hideProv: function() {
+      this.isRegion1 = false;
+      this.isRegion3 = false;
+    },
+    confirmRegion1: function(val) {
+      this.isRegion1 = false;
+      this.tab1Addtail = "";
+      let value = JSON.stringify(val);
+      value = JSON.parse(value);
+      this.tab1Region = "";
+      value.forEach(element => {
+        if (element.name == null) {
+          return;
+        } else {
+          this.tab1Region += element.name + "/";
+        }
+      });
+      // this.tab1Region = this.tab1Region.substring(0,this.tab1Region.lastIndexOf("/"));
+    },
+    confirmRegion3: function(val) {
+      this.isRegion3 = false;
+      this.tab3BusRegDetail = "";
+      let value = JSON.stringify(val);
+      value = JSON.parse(value);
+      this.tab3BusRegion = "";
+      value.forEach(element => {
+        if (element.name == null) {
+          return;
+        } else {
+          this.tab3BusRegion += element.name + "/";
+        }
+      });
+      // this.tab3BusRegion = this.tab3BusRegion.substring(0,this.tab3BusRegion.lastIndexOf("/"));
+    },
+    afterRead(file) {
+      var formdata = new FormData();
+      //可以通过append()方法来追加数据
+      let token = localStorage.getItem("token");
+      formdata.append("file", file.file);
+      formdata.append("token", token);
+      const instance = this.$axios.create({
+        //withCredentials:true
+      });
+      instance
+        .post("http://crm.xfd365.com/user/base/uploadImg", formdata)
+        .then(res => {
+          if (res.data.errno == 0) {
+            this.$toast("上传成功");
+            this.tab2BusPics += res.data.data.url + "#";
+          } else {
+            this.$toast(res.errmsg);
+          }
+        });
+    },
+    saveTab1() {
+      if (this.tab1Name.trim().length == 0) {
+        this.$toast("请输入站长姓名！");
+        return;
+      }
+      let reg = /^1[0-9]{10}$/;
+      if (this.tab1Mobile.trim().length == 0) {
+        this.$toast("请输入签约手机号！");
+        return;
+      } else if (this.tab1Mobile.length <= 10 || !reg.test(this.tab1Mobile)) {
+        this.$toast("请输入正确手机号！");
+        return;
+      }
+      this.title[0].isActive = false;
+      this.title[1].isActive = true;
+      this.tab1Show = false;
+      this.tab2Show = true;
+    },
+    saveTab2() {
+      this.title[1].isActive = false;
+      this.title[2].isActive = true;
+      this.tab2Show = false;
+      this.tab3Show = true;
+    },
+    saveTab3() {
+      this.title[2].isActive = false;
+      this.title[3].isActive = true;
+      this.tab3Show = false;
+      this.tab4Show = true;
+    },
+    saveTab4() {
+      var data = {};
+      data.site_name = this.tab1Name;
+      data.sign_phone = this.tab1Mobile;
+      data.idcard = this.tab1Card;
+
+      data.nation = this.tab1Nation;
+      data.sex = this.tab1Sex;
+      data.date_of_birth = this.tab1Birthday;
+      data.edu = this.tab1Educatione;
+
+      data.wx_mobile = this.tab1Wechat;
+      data.address_phone = this.tab1Telphone;
+      data.postal_code = this.tab1Youbian;
+      data.you_address = this.tab1Region + this.tab1Addtail;
+
+      data.marital = this.tab1Marriage;
+      data.spouse_name = this.tab1SpouseName;
+      data.spouse_phone = this.tab1SpousMobile;
+      data.spouse_idcard = this.tab1SpousCard;
+
+      data.business_name = this.tab2BusName;
+      data.business_pic = this.tab2BusPics;
+
+      data.business = this.tab3Busentity;
+      data.business_site_name = this.tab3BusName;
+      data.business_size = this.tab3BusArea;
+      data.year_amount = this.tab3BusMoney;
+      data.the_num = this.tab3BusNumber;
+      data.business_address = this.tab3BusRegion + this.tab3BusRegDetail;
+
+      data.hold_card = this.tab4CardNumber;
+      data.loans = this.tab4Loan;
+      data.payment_term = this.tab4Payment;
+      data.site_he_bank = this.tab4BankNum;
+      data.site_he_bankname = this.tab4BankName;
+      data.one_bane = this.tab4NearNum;
+
+      data.site_id = this.site_id;
+      data.user_id = this.user_id;
+      
+      this.$api.siteStatiseAdd(data).then(res => {
+        if (res.errno === 0) {
+          this.$toast("添加成功");
+          this.$router.go(-1);
+        } else {
+          this.$toast(res.errmsg);
+        }
+      });
+    }
+  }
+};
+</script>
+<style lang="less">
+.siteStatiseAdd {
+  // min-height: 100%;
+  min-height: calc(100% - 50px);
+  background: #f5f5f5;
+  padding-bottom: 50px;
+  .van-nav-bar {
+    background: url(../../images/msgBg.jpg) no-repeat;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background-size: 100% 50px;
+    .van-nav-bar__text {
+      color: #fff;
+    }
+    .van-icon {
+      color: #fff;
+    }
+  }
+  .navTop {
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 1px solid #eeeeee;
+    background: #ffffff;
+    font-size: 14px;
+    padding: 0 10px;
+    line-height: 36px;
+    li {
+      position: relative;
+      &.active {
+        color: #1c92ff;
+        &::after {
+          position: absolute;
+          content: " ";
+          left: calc(50% - 15px);
+          bottom: 0;
+          right: calc(50% - 15px);
+          width: 30px;
+          height: 2px;
+          background: #1c92ff;
+        }
+      }
+    }
+  }
+  .nav-tab {
+    &.nav-tab2 {
+      background: #ffffff;
+    }
+    &.nav-tab4 {
+      .label7 .van-field__label {
+        width: 100px;
+      }
+      .label8 .van-field__label {
+        width: 116px;
+      }
+      .label9 .van-field__label {
+        width: 136px;
+      }
+    }
+    .marBottom {
+      margin-bottom: 10px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    .van-uploader {
+      margin: 10px;
+    }
+    .bottomTip {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 15px;
+      color: #aaaaaa;
+      background: #f5f5f5;
+      font-size: 14px;
+      line-height: 32px;
+    }
+  }
+  .van-picker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+  }
+  .van-action-sheet.sexSheet {
+    ul {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px 0;
+      img {
+        width: 28px;
+        height: 30px;
+      }
+    }
+  }
+  .van-action-sheet.listSheet {
+    .van-action-sheet__header,
+    .van-action-sheet__item {
+      text-align: left;
+      padding: 0 20px;
+    }
+    .van-action-sheet__header {
+      font-size: 15px;
+    }
+    .van-action-sheet__item {
+      font-size: 14px;
+      height: 42px;
+      line-height: 42px;
+      &:active {
+        color: #1c92ff;
+        background: rgba(28, 146, 255, 0.2);
+      }
+    }
+  }
+
+  button.save {
+    width: 100%;
+    height: 50px;
+    display: block;
+    border: none;
+    background: #1c92ff;
+    color: #fff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+}
+</style>
